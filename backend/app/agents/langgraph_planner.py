@@ -23,6 +23,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, Base
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from ..config import get_settings
 from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, WeatherInfo, Location, Hotel
+from ..services.cache_service import cache, CACHE_TTL_WEATHER, CACHE_TTL_ATTRACTION, CACHE_TTL_HOTEL
 
 
 # ============ State ============
@@ -224,11 +225,18 @@ class LangGraphTripPlanner:
         keywords = preferences[0] if preferences else "景点"
         city = state["city"]
 
+        # 缓存检查: 缓存 key 包含城市+偏好+参考模式
+        ref_mode = state.get("reference_mode", "")
+        ref_content = state.get("reference_content", "")
+        cache_key = f"attractions:{city}:{','.join(preferences)}:{ref_mode}:{ref_content[:100] if ref_content else ''}"
+        cached = cache.get(cache_key)
+        if cached:
+            print(f"   ✅ 景点缓存命中，跳过搜索")
+            return {"attractions_info": cached}
+
         query = f"请搜索{city}的{keywords}相关景点。对每个景点记录名称、地址、坐标。"
 
         # 严格/混合模式: 追加攻略中的具体地名
-        ref_mode = state.get("reference_mode", "")
-        ref_content = state.get("reference_content", "")
         if ref_mode in ("strict", "hybrid") and ref_content:
             names = _extract_place_names(ref_content, city)
             if names:
@@ -237,19 +245,33 @@ class LangGraphTripPlanner:
         subgraph = self._make_search_subgraph(ATTRACTION_SYSTEM, "attractions_info")
         result = await self._run_react_search(subgraph, query)
         print(f"   景点搜索完成 ({len(result)} 字符)")
-        return {"attractions_info": result[:3000]}
+        result = result[:3000]
+        cache.set(cache_key, result, CACHE_TTL_ATTRACTION)
+        return {"attractions_info": result}
 
     async def _weather_node(self, state: PlannerState) -> dict:
         print("🌤️  [ReAct] 查询天气...")
         await self._ensure_initialized()
 
         city = state["city"]
-        query = f"请查询{city}从{state['start_date']}到{state['end_date']}每天的天气"
+        start_date = state["start_date"]
+        end_date = state["end_date"]
+
+        # 缓存检查: 天气与城市+日期范围绑定
+        cache_key = f"weather:{city}:{start_date}:{end_date}"
+        cached = cache.get(cache_key)
+        if cached:
+            print(f"   ✅ 天气缓存命中，跳过查询")
+            return {"weather_info": cached}
+
+        query = f"请查询{city}从{start_date}到{end_date}每天的天气"
 
         subgraph = self._make_search_subgraph(WEATHER_SYSTEM, "weather_info")
         result = await self._run_react_search(subgraph, query)
         print(f"   天气查询完成 ({len(result)} 字符)")
-        return {"weather_info": result[:2000]}
+        result = result[:2000]
+        cache.set(cache_key, result, CACHE_TTL_WEATHER)
+        return {"weather_info": result}
 
     async def _hotel_node(self, state: PlannerState) -> dict:
         print("🏨 [ReAct] 搜索酒店...")
@@ -257,6 +279,14 @@ class LangGraphTripPlanner:
 
         city = state["city"]
         acc = state["accommodation"]
+
+        # 缓存检查: 酒店与城市+住宿偏好绑定
+        cache_key = f"hotel:{city}:{acc}"
+        cached = cache.get(cache_key)
+        if cached:
+            print(f"   ✅ 酒店缓存命中，跳过搜索")
+            return {"hotels_info": cached}
+
         query = f"请搜索{city}的{acc}酒店。如果搜索结果少，尝试'快捷酒店''宾馆''民宿'等关键词。记录名称、地址、坐标、价格。"
         if state.get("reference_mode") in ("strict", "hybrid") and state.get("reference_content"):
             query += f"\n攻略参考: {state['reference_content'][:500]}"
@@ -264,7 +294,9 @@ class LangGraphTripPlanner:
         subgraph = self._make_search_subgraph(HOTEL_SYSTEM, "hotels_info")
         result = await self._run_react_search(subgraph, query)
         print(f"   酒店搜索完成 ({len(result)} 字符)")
-        return {"hotels_info": result[:2000]}
+        result = result[:2000]
+        cache.set(cache_key, result, CACHE_TTL_HOTEL)
+        return {"hotels_info": result}
 
     async def _planner_node(self, state: PlannerState) -> dict:
         print("📋 生成行程计划...")
