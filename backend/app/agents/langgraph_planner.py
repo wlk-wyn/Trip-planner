@@ -26,6 +26,40 @@ from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, W
 from ..services.cache_service import cache, CACHE_TTL_WEATHER, CACHE_TTL_ATTRACTION, CACHE_TTL_HOTEL
 
 
+# ============ 酒店特殊要求关键词 ============
+
+HOTEL_SPECIAL_KEYWORDS = [
+    "地铁", "近地铁", "地铁口", "地铁站",
+    "市中心", "城中心", "商圈", "步行街",
+    "五星", "四星级", "豪华", "奢华", "高端",
+    "民宿", "青旅", "客栈", "公寓",
+    "江景", "海景", "湖景", "山景",
+    "亲子", "儿童", "带娃",
+    "早餐", "含早", "双早",
+    "停车", "免费停车",
+    "泳池", "健身房", "SPA",
+    "安静", "隔音", "高层", "阳台",
+    "品牌", "希尔顿", "万豪", "洲际", "如家", "汉庭", "7天", "锦江之星", "全季", "亚朵",
+]
+
+
+def _has_hotel_special_requirements(
+    free_text_input: str,
+    accommodation: str,
+    preferences: List[str],
+) -> bool:
+    """判断用户是否对酒店有特殊要求"""
+    text = (free_text_input or "").strip().lower()
+    acc = (accommodation or "").strip()
+    prefs = " ".join(preferences or []).lower()
+
+    if any(kw.lower() in text for kw in HOTEL_SPECIAL_KEYWORDS):
+        return True
+    if any(kw.lower() in prefs for kw in HOTEL_SPECIAL_KEYWORDS):
+        return True
+    return False
+
+
 # ============ State ============
 
 def _str_reducer(old: str, new: str) -> str:
@@ -151,12 +185,51 @@ class LangGraphTripPlanner:
                 }
             })
             self.tools = await self.mcp_client.get_tools()
+            self._tool_index = {getattr(t, "name", str(t)): t for t in self.tools}
             self._initialized = True
             print(f"✅ LangGraph MCP 工具: {len(self.tools)} 个")
         except Exception as e:
             print(f"⚠️ MCP 加载失败: {e}")
             self.tools = []
+            self._tool_index = {}
             self._initialized = True
+
+    def _get_tool(self, name: str):
+        """按名称获取MCP工具"""
+        return self._tool_index.get(name)
+
+    async def _call_tool_direct(self, tool_name: str, arguments: dict) -> str:
+        """直接调用MCP工具，返回结果字符串（不走ReAct循环）"""
+        tool = self._get_tool(tool_name)
+        if tool is None:
+            print(f"   ⚠️ 未找到工具: {tool_name}，回退到ReAct")
+            return ""
+        try:
+            result = await tool.ainvoke(arguments)
+            # Tool调用结果可能是ToolMessage或str
+            if isinstance(result, ToolMessage):
+                content = result.content
+            elif isinstance(result, str):
+                content = result
+            elif isinstance(result, BaseMessage):
+                content = getattr(result, "content", "")
+            else:
+                content = str(result)
+            # content可能是list[dict]（多模态），提取text
+            if isinstance(content, list):
+                parts = []
+                for part in content:
+                    if isinstance(part, dict) and "text" in part:
+                        parts.append(str(part["text"]))
+                    elif isinstance(part, str):
+                        parts.append(part)
+                    else:
+                        parts.append(str(part))
+                content = "\n".join(parts)
+            return str(content) if content is not None else ""
+        except Exception as e:
+            print(f"   ⚠️ 工具 {tool_name} 调用失败: {e}，回退到ReAct")
+            return ""
 
     # ============ ReAct 搜索节点 (内部循环) ============
 
@@ -250,49 +323,103 @@ class LangGraphTripPlanner:
         return {"attractions_info": result}
 
     async def _weather_node(self, state: PlannerState) -> dict:
-        print("🌤️  [ReAct] 查询天气...")
+        print("🌤️  查询天气...")
         await self._ensure_initialized()
 
         city = state["city"]
         start_date = state["start_date"]
         end_date = state["end_date"]
 
-        # 缓存检查: 天气与城市+日期范围绑定
         cache_key = f"weather:{city}:{start_date}:{end_date}"
         cached = cache.get(cache_key)
         if cached:
             print(f"   ✅ 天气缓存命中，跳过查询")
             return {"weather_info": cached}
 
-        query = f"请查询{city}从{start_date}到{end_date}每天的天气"
+        # P2 优化: 直接调用 maps_weather 工具，省去 LLM 推理环节
+        result = ""
+        tool_output = await self._call_tool_direct("maps_weather", {"city": city})
+        if tool_output.strip():
+            print(f"   [Direct] 天气API直接调用成功")
+            # 包装一下，明确告诉规划节点这段天气对应的日期范围
+            result = (
+                f"{city} 天气情况（时间范围: {start_date} 至 {end_date}）\n"
+                f"原始天气数据:\n{tool_output}"
+            )
+        else:
+            # 兜底: 直接调用失败，回退到 ReAct 模式
+            print(f"   [ReAct] 直接调用失败，回退ReAct模式...")
+            query = f"请查询{city}从{start_date}到{end_date}每天的天气"
+            subgraph = self._make_search_subgraph(WEATHER_SYSTEM, "weather_info")
+            result = await self._run_react_search(subgraph, query)
 
-        subgraph = self._make_search_subgraph(WEATHER_SYSTEM, "weather_info")
-        result = await self._run_react_search(subgraph, query)
         print(f"   天气查询完成 ({len(result)} 字符)")
         result = result[:2000]
         cache.set(cache_key, result, CACHE_TTL_WEATHER)
         return {"weather_info": result}
 
     async def _hotel_node(self, state: PlannerState) -> dict:
-        print("🏨 [ReAct] 搜索酒店...")
+        print("🏨 搜索酒店...")
         await self._ensure_initialized()
 
         city = state["city"]
         acc = state["accommodation"]
+        free_text = state.get("free_text_input", "") or ""
+        prefs = state.get("preferences", []) or []
 
-        # 缓存检查: 酒店与城市+住宿偏好绑定
         cache_key = f"hotel:{city}:{acc}"
         cached = cache.get(cache_key)
         if cached:
             print(f"   ✅ 酒店缓存命中，跳过搜索")
             return {"hotels_info": cached}
 
-        query = f"请搜索{city}的{acc}酒店。如果搜索结果少，尝试'快捷酒店''宾馆''民宿'等关键词。记录名称、地址、坐标、价格。"
-        if state.get("reference_mode") in ("strict", "hybrid") and state.get("reference_content"):
-            query += f"\n攻略参考: {state['reference_content'][:500]}"
+        # P2 优化: 判断是否需要特殊处理
+        need_react = _has_hotel_special_requirements(free_text, acc, prefs)
+        result = ""
 
-        subgraph = self._make_search_subgraph(HOTEL_SYSTEM, "hotels_info")
-        result = await self._run_react_search(subgraph, query)
+        if not need_react:
+            # 无特殊要求: 直接调用 maps_text_search
+            print(f"   [Direct] 无特殊酒店要求，直接API搜索...")
+            keywords = f"{city} {acc}"
+            tool_output = await self._call_tool_direct(
+                "maps_text_search",
+                {"keywords": keywords, "city": city, "citylimit": True},
+            )
+            if tool_output.strip():
+                print(f"   [Direct] 酒店API直接调用成功")
+                # 包装一下，保持与ReAct输出格式语义一致
+                result = (
+                    f"{city} {acc} 酒店推荐（普通筛选）\n"
+                    f"搜索关键词: {keywords}\n"
+                    f"搜索结果:\n{tool_output}"
+                )
+            else:
+                print(f"   ⚠️ 直接搜索为空，尝试扩大关键词 fallback...")
+                for alt_kw in [f"{city} 酒店", f"{city} 快捷酒店 宾馆 民宿"]:
+                    fallback = await self._call_tool_direct(
+                        "maps_text_search",
+                        {"keywords": alt_kw, "city": city, "citylimit": True},
+                    )
+                    if fallback.strip():
+                        print(f"   [Fallback] 关键词'{alt_kw}'搜索成功")
+                        result = (
+                            f"{city} {acc} 酒店推荐（普通筛选，已扩大关键词范围到 '{alt_kw}'）\n"
+                            f"搜索结果:\n{fallback}"
+                        )
+                        break
+
+        if not result:
+            # 有特殊要求 OR 直接调用失败 → 走 ReAct 模式
+            if need_react:
+                print(f"   [ReAct] 检测到特殊酒店要求，使用智能推理模式")
+            else:
+                print(f"   [ReAct] 直接搜索均为空，回退智能模式...")
+            query = f"请搜索{city}的{acc}酒店。如果搜索结果少，尝试'快捷酒店''宾馆''民宿'等关键词。记录名称、地址、坐标、价格。"
+            if state.get("reference_mode") in ("strict", "hybrid") and state.get("reference_content"):
+                query += f"\n攻略参考: {state['reference_content'][:500]}"
+            subgraph = self._make_search_subgraph(HOTEL_SYSTEM, "hotels_info")
+            result = await self._run_react_search(subgraph, query)
+
         print(f"   酒店搜索完成 ({len(result)} 字符)")
         result = result[:2000]
         cache.set(cache_key, result, CACHE_TTL_HOTEL)
