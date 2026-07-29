@@ -60,6 +60,78 @@ def _has_hotel_special_requirements(
     return False
 
 
+def _extract_attraction_coords(attractions_text: str, max_points: int = 6) -> list:
+    """从景点搜索结果文本中提取坐标点列表
+    
+    返回 [(longitude, latitude), ...]，最多取 max_points 个。
+    兼容多种格式：
+    - "坐标: 120.148, 30.248"
+    - "location: 120.148,30.248"  
+    - "longitude: 120.148, latitude: 30.248"
+    - JSON: {"location": {"lng": 120.148, "lat": 30.248}}
+    - JSON: {"longitude": 120.148, "latitude": 30.248}
+    """
+    if not attractions_text:
+        return []
+
+    coords = []
+    text = attractions_text
+
+    # 模式1: longitude/latitude 命名对
+    for m in re.finditer(
+        r'longitude["\s:]+([0-9.]+)["\s,]+latitude["\s:]+([0-9.]+)',
+        text, re.IGNORECASE
+    ):
+        coords.append((float(m.group(1)), float(m.group(2))))
+
+    # 模式2: location: lng,lat 或 坐标: lng,lat
+    if len(coords) < 3:
+        for m in re.finditer(
+            r'(?:坐标|location|坐标)["\s:]+([0-9.]+)\s*[,，]\s*([0-9.]+)',
+            text, re.IGNORECASE
+        ):
+            coords.append((float(m.group(1)), float(m.group(2))))
+
+    # 模式3: JSON location 嵌套对象
+    if len(coords) < 3:
+        for m in re.finditer(
+            r'"location"\s*:\s*\{[^}]*"lng"\s*:\s*([0-9.]+)[^}]*"lat"\s*:\s*([0-9.]+)',
+            text, re.IGNORECASE
+        ):
+            coords.append((float(m.group(1)), float(m.group(2))))
+
+        for m in re.finditer(
+            r'"location"\s*:\s*\{[^}]*"longitude"\s*:\s*([0-9.]+)[^}]*"latitude"\s*:\s*([0-9.]+)',
+            text, re.IGNORECASE
+        ):
+            coords.append((float(m.group(1)), float(m.group(2))))
+
+    # 去重（坐标相近视为同一地点）
+    unique = []
+    for lng, lat in coords:
+        if not any(abs(lng - u_lng) < 0.01 and abs(lat - u_lat) < 0.01 for u_lng, u_lat in unique):
+            unique.append((lng, lat))
+
+    return unique[:max_points]
+
+
+def _compute_center(coords: list) -> tuple:
+    """计算多个坐标点的几何中心"""
+    if not coords:
+        return (0.0, 0.0)
+    lngs = [c[0] for c in coords]
+    lats = [c[1] for c in coords]
+    return (sum(lngs) / len(lngs), sum(lats) / len(lats))
+
+
+def _guess_city_radius(city: str) -> int:
+    """根据城市规模推测合理的酒店搜索半径（米）"""
+    large_cities = {"北京", "上海", "广州", "深圳", "成都", "杭州", "武汉", "西安", "南京", "重庆", "天津"}
+    if city in large_cities:
+        return 8000  # 8km
+    return 5000  # 5km
+
+
 # ============ State ============
 
 def _str_reducer(old: str, new: str) -> str:
@@ -366,6 +438,7 @@ class LangGraphTripPlanner:
         acc = state["accommodation"]
         free_text = state.get("free_text_input", "") or ""
         prefs = state.get("preferences", []) or []
+        attractions_info = state.get("attractions_info", "") or ""
 
         cache_key = f"hotel:{city}:{acc}"
         cached = cache.get(cache_key)
@@ -375,38 +448,105 @@ class LangGraphTripPlanner:
 
         # P2 优化: 判断是否需要特殊处理
         need_react = _has_hotel_special_requirements(free_text, acc, prefs)
+
+        # 方案A: 从景点结果提取坐标，搜索景点周边酒店
+        attraction_coords = _extract_attraction_coords(attractions_info)
+        search_mode = "city-wide"
+        center_lng, center_lat = 0.0, 0.0
+        search_radius = _guess_city_radius(city)
+
+        if attraction_coords:
+            center_lng, center_lat = _compute_center(attraction_coords)
+            search_mode = "around-attractions"
+            print(f"   📍 景点坐标提取成功: {len(attraction_coords)} 个景点")
+            print(f"   📍 景点群中心: ({center_lng:.4f}, {center_lat:.4f})")
+            print(f"   📍 搜索半径: {search_radius}m")
+        else:
+            print(f"   ⚠️ 未从景点结果中提取到坐标，回退全城市搜索")
+
         result = ""
 
         if not need_react:
-            # 无特殊要求: 直接调用 maps_text_search
-            print(f"   [Direct] 无特殊酒店要求，直接API搜索...")
-            keywords = f"{city} {acc}"
-            tool_output = await self._call_tool_direct(
-                "maps_text_search",
-                {"keywords": keywords, "city": city, "citylimit": True},
-            )
-            if tool_output.strip():
-                print(f"   [Direct] 酒店API直接调用成功")
-                # 包装一下，保持与ReAct输出格式语义一致
-                result = (
-                    f"{city} {acc} 酒店推荐（普通筛选）\n"
-                    f"搜索关键词: {keywords}\n"
-                    f"搜索结果:\n{tool_output}"
+            # 无特殊要求: 直接API搜索
+            if search_mode == "around-attractions":
+                print(f"   [Direct] 景点周边搜索 {acc} 酒店...")
+                keywords = acc
+                # maps_around_search 以中心点+半径搜索
+                location_str = f"{center_lng},{center_lat}"
+                tool_output = await self._call_tool_direct(
+                    "maps_around_search",
+                    {
+                        "keywords": keywords,
+                        "location": location_str,
+                        "radius": search_radius,
+                        "types": "宾馆酒店",
+                    },
                 )
-            else:
-                print(f"   ⚠️ 直接搜索为空，尝试扩大关键词 fallback...")
-                for alt_kw in [f"{city} 酒店", f"{city} 快捷酒店 宾馆 民宿"]:
-                    fallback = await self._call_tool_direct(
-                        "maps_text_search",
-                        {"keywords": alt_kw, "city": city, "citylimit": True},
+                if tool_output.strip():
+                    print(f"   [Direct] 周边搜索成功")
+                    result = (
+                        f"{city} {acc} 酒店推荐（景点周边{search_radius}m范围）\n"
+                        f"中心点坐标: {center_lng:.4f}, {center_lat:.4f}\n"
+                        f"搜索结果:\n{tool_output}"
                     )
-                    if fallback.strip():
-                        print(f"   [Fallback] 关键词'{alt_kw}'搜索成功")
+                else:
+                    # 周边搜索无结果，尝试扩大半径或降级
+                    print(f"   ⚠️ 周边搜索无结果，尝试扩大半径到 10km...")
+                    tool_output = await self._call_tool_direct(
+                        "maps_around_search",
+                        {
+                            "keywords": keywords,
+                            "location": location_str,
+                            "radius": 10000,
+                            "types": "宾馆酒店",
+                        },
+                    )
+                    if tool_output.strip():
+                        print(f"   [Direct] 扩大半径搜索成功")
                         result = (
-                            f"{city} {acc} 酒店推荐（普通筛选，已扩大关键词范围到 '{alt_kw}'）\n"
-                            f"搜索结果:\n{fallback}"
+                            f"{city} {acc} 酒店推荐（景点周边10km范围）\n"
+                            f"中心点坐标: {center_lng:.4f}, {center_lat:.4f}\n"
+                            f"搜索结果:\n{tool_output}"
                         )
-                        break
+                    else:
+                        # 最终降级: 全城市搜索
+                        print(f"   ⚠️ 扩大半径仍无结果，降级全城市搜索...")
+                        tool_output = await self._call_tool_direct(
+                            "maps_text_search",
+                            {"keywords": f"{city} {acc}", "city": city, "citylimit": True},
+                        )
+                        if tool_output.strip():
+                            result = (
+                                f"{city} {acc} 酒店推荐（全城市降级搜索）\n"
+                                f"搜索结果:\n{tool_output}"
+                            )
+            else:
+                # 无坐标可用: 全城市搜索
+                print(f"   [Direct] 无坐标可用，全城市搜索 {acc} 酒店...")
+                keywords = f"{city} {acc}"
+                tool_output = await self._call_tool_direct(
+                    "maps_text_search",
+                    {"keywords": keywords, "city": city, "citylimit": True},
+                )
+                if tool_output.strip():
+                    result = (
+                        f"{city} {acc} 酒店推荐（全城市搜索）\n"
+                        f"搜索结果:\n{tool_output}"
+                    )
+                else:
+                    print(f"   ⚠️ 直接搜索为空，尝试扩大关键词 fallback...")
+                    for alt_kw in [f"{city} 酒店", f"{city} 快捷酒店 宾馆 民宿"]:
+                        fallback = await self._call_tool_direct(
+                            "maps_text_search",
+                            {"keywords": alt_kw, "city": city, "citylimit": True},
+                        )
+                        if fallback.strip():
+                            print(f"   [Fallback] 关键词'{alt_kw}'搜索成功")
+                            result = (
+                                f"{city} {acc} 酒店推荐（扩大关键词: '{alt_kw}'）\n"
+                                f"搜索结果:\n{fallback}"
+                            )
+                            break
 
         if not result:
             # 有特殊要求 OR 直接调用失败 → 走 ReAct 模式
@@ -415,13 +555,15 @@ class LangGraphTripPlanner:
             else:
                 print(f"   [ReAct] 直接搜索均为空，回退智能模式...")
             query = f"请搜索{city}的{acc}酒店。如果搜索结果少，尝试'快捷酒店''宾馆''民宿'等关键词。记录名称、地址、坐标、价格。"
+            if search_mode == "around-attractions":
+                query += f"\n优先搜索以下坐标附近的酒店: ({center_lng:.4f}, {center_lat:.4f})，半径{search_radius}米内。"
             if state.get("reference_mode") in ("strict", "hybrid") and state.get("reference_content"):
                 query += f"\n攻略参考: {state['reference_content'][:500]}"
             subgraph = self._make_search_subgraph(HOTEL_SYSTEM, "hotels_info")
             result = await self._run_react_search(subgraph, query)
 
-        print(f"   酒店搜索完成 ({len(result)} 字符)")
-        result = result[:2000]
+        print(f"   酒店搜索完成 ({len(result)} 字符) [模式: {search_mode}]")
+        result = result[:2500]
         cache.set(cache_key, result, CACHE_TTL_HOTEL)
         return {"hotels_info": result}
 
@@ -442,6 +584,7 @@ class LangGraphTripPlanner:
 **天气:** {state.get('weather_info', '')[:1500]}
 **酒店:** {state.get('hotels_info', '')[:1500]}
 
+注意: 酒店是基于景点坐标进行的周边搜索，优先选择与景点群地理就近的酒店。
 每天2-3个景点, 地理就近排列, 每餐推荐具体餐厅(名称+地址+坐标+招牌菜)。返回完整JSON。"""
         if state.get("free_text_input"):
             query += f"\n额外要求: {state['free_text_input']}"
@@ -565,10 +708,15 @@ class LangGraphTripPlanner:
         return optimized
 
     def _build_graph(self):
-        """构建主 StateGraph: 3个并行搜索 + 1个规划节点
+        """构建主 StateGraph: 景点+天气并行 → 酒店依赖景点 → 规划节点
         
-        优化: 景点/天气/酒店三个搜索节点并行执行，
-        全部完成后进入规划节点，预计提速 40%+
+        方案A优化: 酒店搜索依赖景点坐标，使用周边搜索提升酒店匹配度。
+        景点和天气仍保持并行以最大化效率。
+        
+        流程:
+        START ─┬─→ search_attractions ─┬─→ search_hotels ─┐
+               └─→ search_weather      ─┼─→ generate_plan → END
+                                        └─────────────────┘
         """
         workflow = StateGraph(PlannerState)
 
@@ -577,13 +725,14 @@ class LangGraphTripPlanner:
         workflow.add_node("search_hotels", self._hotel_node)
         workflow.add_node("generate_plan", self._planner_node)
 
-        # 并行 fan-out: START 同时启动三个搜索节点
+        # 第一阶段: 景点和天气并行
         workflow.add_edge(START, "search_attractions")
         workflow.add_edge(START, "search_weather")
-        workflow.add_edge(START, "search_hotels")
 
-        # fan-in: 三个搜索节点全部完成后，进入规划节点
-        workflow.add_edge("search_attractions", "generate_plan")
+        # 第二阶段: 酒店依赖景点坐标
+        workflow.add_edge("search_attractions", "search_hotels")
+
+        # 第三阶段: 规划节点等待天气+酒店完成
         workflow.add_edge("search_weather", "generate_plan")
         workflow.add_edge("search_hotels", "generate_plan")
 
