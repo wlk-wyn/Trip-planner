@@ -480,7 +480,7 @@ const handleExtractUrl = async (idx: number) => {
   extractSuccess.value = false
 
   try {
-    const res = await fetch('http://localhost:8000/api/trip/extract-url', {
+    const res = await fetch('/api/trip/extract-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
@@ -649,7 +649,7 @@ const runCropOCR = async (shotIdx: number, cropIdx: number) => {
   crop.ocrLoading = true
 
   try {
-    const res = await fetch('http://localhost:8000/api/trip/extract-image', {
+    const res = await fetch('/api/trip/extract-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_base64: crop.dataUrl })
