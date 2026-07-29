@@ -1,8 +1,13 @@
 """
 LangGraph 多智能体旅行规划系统
 ReAct 架构: Agent ←→ Tools 循环，观察-推理-行动，直到完成任务
-Graph: START → AttractionReAct → WeatherReAct → HotelReAct → Planner → END
+
+Graph (P0 优化后 - 并行搜索):
+START ─┬─→ AttractionReAct ─┐
+       ├─→ WeatherReAct    ─┼─→ Planner → END
+       └─→ HotelReAct      ┘
        每个 ReAct 节点内部: agent ⇄ tools (条件循环)
+       三个搜索节点并行执行，全部完成后进入规划节点
 """
 
 import os
@@ -22,6 +27,11 @@ from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, W
 
 # ============ State ============
 
+def _str_reducer(old: str, new: str) -> str:
+    """字符串 reducer: 并行分支合并时，非空新值覆盖旧值"""
+    return new if new else old
+
+
 class PlannerState(TypedDict):
     """顶层状态: 4个阶段的输入输出"""
     # 输入
@@ -35,10 +45,10 @@ class PlannerState(TypedDict):
     free_text_input: str
     reference_content: str
     reference_mode: str
-    # 中间结果
-    attractions_info: str
-    weather_info: str
-    hotels_info: str
+    # 中间结果 (使用 reducer 支持并行分支合并)
+    attractions_info: Annotated[str, _str_reducer]
+    weather_info: Annotated[str, _str_reducer]
+    hotels_info: Annotated[str, _str_reducer]
     # ReAct消息 (每个阶段独立的消息历史)
     attraction_messages: Annotated[List[BaseMessage], add_messages]
     weather_messages: Annotated[List[BaseMessage], add_messages]
@@ -396,7 +406,11 @@ class LangGraphTripPlanner:
         return optimized
 
     def _build_graph(self):
-        """构建主 StateGraph: 3个ReAct搜索 + 1个规划节点"""
+        """构建主 StateGraph: 3个并行搜索 + 1个规划节点
+        
+        优化: 景点/天气/酒店三个搜索节点并行执行，
+        全部完成后进入规划节点，预计提速 40%+
+        """
         workflow = StateGraph(PlannerState)
 
         workflow.add_node("search_attractions", self._attraction_node)
@@ -404,11 +418,16 @@ class LangGraphTripPlanner:
         workflow.add_node("search_hotels", self._hotel_node)
         workflow.add_node("generate_plan", self._planner_node)
 
-        # 顺序流水线 (每个节点内部有自己的 ReAct 循环)
+        # 并行 fan-out: START 同时启动三个搜索节点
         workflow.add_edge(START, "search_attractions")
-        workflow.add_edge("search_attractions", "search_weather")
-        workflow.add_edge("search_weather", "search_hotels")
+        workflow.add_edge(START, "search_weather")
+        workflow.add_edge(START, "search_hotels")
+
+        # fan-in: 三个搜索节点全部完成后，进入规划节点
+        workflow.add_edge("search_attractions", "generate_plan")
+        workflow.add_edge("search_weather", "generate_plan")
         workflow.add_edge("search_hotels", "generate_plan")
+
         workflow.add_edge("generate_plan", END)
 
         return workflow.compile()
