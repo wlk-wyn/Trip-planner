@@ -3,6 +3,8 @@
 > 分支: `feature/p0-parallel-search`
 > 日期: 2026-07-29
 > 状态: ✅ 已完成
+> 
+> 📋 关联文档: [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) - 完整改进计划
 
 ---
 
