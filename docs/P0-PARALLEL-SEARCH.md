@@ -102,6 +102,20 @@ def _build_graph(self):
 - `[三个搜索节点] → generate_plan`: 任意一个搜索完成都会检查，全部完成后才执行规划（fan-in）
 - LangGraph 自动处理并行调度和状态合并
 
+#### 变更 4: 预先初始化 MCP 客户端（第 442-443 行）
+
+```python
+async def plan_trip_async(self, request: TripRequest) -> TripPlan:
+    # 优化: 预先初始化 MCP 客户端，避免并行节点并发初始化导致竞态条件
+    await self._ensure_initialized()
+    # ... 后续代码
+```
+
+**说明**:
+- 并行模式下，三个节点会同时执行，如果都调用 `_ensure_initialized()` 可能导致竞态条件
+- 在 `plan_trip_async` 入口预先完成初始化，确保 MCP 客户端在图执行前已就绪
+- 节点中的 `_ensure_initialized()` 保留为安全检查（已初始化时直接返回）
+
 ---
 
 ## 4. 原理说明

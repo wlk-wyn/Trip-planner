@@ -439,6 +439,9 @@ class LangGraphTripPlanner:
         print(f"🚀 [LangGraph ReAct] {request.city} | {request.travel_days}天")
         print(f"{'='*60}")
 
+        # 优化: 预先初始化 MCP 客户端，避免并行节点并发初始化导致竞态条件
+        await self._ensure_initialized()
+
         graph = self._build_graph()
         state: PlannerState = {
             "city": request.city,
