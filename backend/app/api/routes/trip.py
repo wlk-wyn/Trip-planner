@@ -2,13 +2,15 @@
 
 import os
 import re
+import json
 import base64
 import requests
 from io import BytesIO
 from bs4 import BeautifulSoup
 from fastapi import APIRouter, HTTPException
+from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, AsyncIterator
 from PIL import Image
 from ...models.schemas import (
     TripRequest,
@@ -73,6 +75,95 @@ async def plan_trip(request: TripRequest):
             status_code=500,
             detail=f"生成旅行计划失败: {str(e)}"
         )
+
+
+@router.post(
+    "/plan/stream",
+    summary="流式生成旅行计划",
+    description="SSE流式响应，实时推送规划进度",
+    response_class=EventSourceResponse
+)
+async def plan_trip_stream(request: TripRequest) -> EventSourceResponse:
+    """
+    流式生成旅行计划 (P4: SSE支持)
+
+    通过Server-Sent Events实时推送规划进度事件:
+    - progress: 进度更新事件
+    - complete: 规划完成事件
+    - error: 错误事件
+    """
+    import asyncio
+    
+    print(f"\n{'='*60}")
+    print(f"📡 SSE流式规划请求 (引擎: {PLANNER_ENGINE})")
+    print(f"   城市: {request.city}")
+    print(f"   天数: {request.travel_days}")
+    print(f"{'='*60}\n")
+
+    # 使用队列进行进度消息传递
+    progress_queue: asyncio.Queue = asyncio.Queue()
+
+    async def progress_callback(percent: int, message: str):
+        """进度回调: 将进度消息放入队列"""
+        await progress_queue.put({
+            "event": "progress",
+            "data": json.dumps({
+                "progress": percent,
+                "message": message,
+            }, ensure_ascii=False)
+        })
+
+    async def run_planning():
+        """在线程中执行规划"""
+        try:
+            planner = get_langgraph_planner()
+            trip_plan = await planner.plan_trip_stream(
+                request=request,
+                progress_callback=progress_callback
+            )
+            # 发送完成事件
+            await progress_queue.put({
+                "event": "complete",
+                "data": json.dumps({
+                    "success": True,
+                    "message": "旅行计划生成成功",
+                    "data": trip_plan.model_dump()
+                }, ensure_ascii=False)
+            })
+        except Exception as e:
+            print(f"❌ SSE流式规划失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            await progress_queue.put({
+                "event": "error",
+                "data": json.dumps({
+                    "success": False,
+                    "message": f"生成旅行计划失败: {str(e)}"
+                }, ensure_ascii=False)
+            })
+        finally:
+            # 发送结束信号
+            await progress_queue.put(None)
+
+    async def event_generator() -> AsyncIterator[dict]:
+        """SSE事件生成器"""
+        # 启动规划任务
+        planning_task = asyncio.create_task(run_planning())
+
+        while True:
+            # 从队列获取消息
+            event = await progress_queue.get()
+            
+            if event is None:
+                # 结束信号
+                break
+                
+            yield event
+
+        # 等待规划任务完成
+        await planning_task
+
+    return EventSourceResponse(event_generator())
 
 
 @router.get(

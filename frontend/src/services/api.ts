@@ -49,6 +49,114 @@ export async function generateTripPlan(formData: TripFormData): Promise<TripPlan
 }
 
 /**
+ * 流式生成旅行计划 (P4: SSE支持)
+ * @param formData 旅行请求数据
+ * @param onProgress 进度回调函数
+ * @returns 返回Promise，完成后resolve旅行计划
+ */
+export function generateTripPlanStream(
+  formData: TripFormData,
+  onProgress: (progress: number, message: string) => void
+): Promise<TripPlanResponse> {
+  return new Promise((resolve, reject) => {
+    const url = `${API_BASE_URL}/api/trip/plan/stream`
+    
+    // 超时机制: 如果10秒内没有收到进度更新，就认为SSE失败
+    let lastProgressTime = Date.now()
+    const timeoutTimer = setInterval(() => {
+      if (Date.now() - lastProgressTime > 10000) {
+        clearInterval(timeoutTimer)
+        reject(new Error('SSE流式响应超时'))
+      }
+    }, 2000)
+
+    // 使用fetch + ReadableStream实现SSE
+    async function fetchStream() {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream'
+          },
+          body: JSON.stringify(formData)
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        if (!reader) {
+          throw new Error('No reader available')
+        }
+
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            break
+          }
+
+          buffer += decoder.decode(value, { stream: true })
+          
+          // 解析SSE事件 (以\n\n分隔)
+          const events = buffer.split('\n\n')
+          buffer = events.pop() || ''
+
+          for (const event of events) {
+            const lines = event.split('\n')
+            let eventType = 'message'
+            let eventData = ''
+
+            for (const line of lines) {
+              if (line.startsWith('event:')) {
+                eventType = line.slice(6).trim()
+              } else if (line.startsWith('data:')) {
+                eventData = line.slice(5).trim()
+              }
+            }
+
+            if (eventData) {
+              try {
+                const data = JSON.parse(eventData)
+                lastProgressTime = Date.now()
+                
+                if (eventType === 'progress') {
+                  onProgress(data.progress, data.message)
+                } else if (eventType === 'complete') {
+                  clearInterval(timeoutTimer)
+                  resolve(data)
+                  return
+                } else if (eventType === 'error') {
+                  clearInterval(timeoutTimer)
+                  reject(new Error(data.message))
+                  return
+                }
+              } catch (e) {
+                console.error('SSE parse error:', e, eventData)
+              }
+            }
+          }
+        }
+
+        // 如果没有收到complete事件，返回错误
+        clearInterval(timeoutTimer)
+        reject(new Error('流式响应未完成'))
+      } catch (error) {
+        clearInterval(timeoutTimer)
+        reject(error)
+      }
+    }
+
+    fetchStream()
+  })
+}
+
+/**
  * 健康检查
  */
 export async function healthCheck(): Promise<any> {

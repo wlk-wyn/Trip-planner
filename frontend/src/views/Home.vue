@@ -365,7 +365,7 @@
 import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { generateTripPlan } from '@/services/api'
+import { generateTripPlan, generateTripPlanStream } from '@/services/api'
 import type { TripFormData } from '@/types'
 import type { Dayjs } from 'dayjs'
 
@@ -688,42 +688,31 @@ const handleSubmit = async () => {
     formData.reference_type = screenshots.value.length > 0 ? 'screenshot' : 'url'
   }
 
-  // 模拟进度更新
-  const progressInterval = setInterval(() => {
-    if (loadingProgress.value < 90) {
-      loadingProgress.value += 10
-
-      // 更新状态文本
-      if (loadingProgress.value <= 30) {
-        loadingStatus.value = '🔍 正在搜索景点...'
-      } else if (loadingProgress.value <= 50) {
-        loadingStatus.value = '🌤️ 正在查询天气...'
-      } else if (loadingProgress.value <= 70) {
-        loadingStatus.value = '🏨 正在推荐酒店...'
-      } else {
-        loadingStatus.value = '📋 正在生成行程计划...'
-      }
-    }
-  }, 500)
+  const requestData: TripFormData = {
+    city: formData.city,
+    start_date: formData.start_date.format('YYYY-MM-DD'),
+    end_date: formData.end_date.format('YYYY-MM-DD'),
+    travel_days: formData.travel_days,
+    transportation: formData.transportation,
+    accommodation: formData.accommodation,
+    preferences: formData.preferences,
+    free_text_input: formData.free_text_input,
+    reference_type: formData.reference_type,
+    reference_content: formData.reference_content,
+    reference_mode: formData.reference_mode
+  }
 
   try {
-    const requestData: TripFormData = {
-      city: formData.city,
-      start_date: formData.start_date.format('YYYY-MM-DD'),
-      end_date: formData.end_date.format('YYYY-MM-DD'),
-      travel_days: formData.travel_days,
-      transportation: formData.transportation,
-      accommodation: formData.accommodation,
-      preferences: formData.preferences,
-      free_text_input: formData.free_text_input,
-      reference_type: formData.reference_type,
-      reference_content: formData.reference_content,
-      reference_mode: formData.reference_mode
-    }
+    // P4: 使用SSE流式接口
+    const response = await generateTripPlanStream(
+      requestData,
+      (progress: number, status: string) => {
+        loadingProgress.value = progress
+        loadingStatus.value = status
+        console.log(`📊 进度: ${progress}% - ${status}`)
+      }
+    )
 
-    const response = await generateTripPlan(requestData)
-
-    clearInterval(progressInterval)
     loadingProgress.value = 100
     loadingStatus.value = '✅ 完成!'
 
@@ -739,16 +728,58 @@ const handleSubmit = async () => {
       }, 500)
     } else {
       message.error(response.message || '生成失败')
-    }
-  } catch (error: any) {
-    clearInterval(progressInterval)
-    message.error(error.message || '生成旅行计划失败,请稍后重试')
-  } finally {
-    setTimeout(() => {
       loading.value = false
       loadingProgress.value = 0
       loadingStatus.value = ''
-    }, 1000)
+    }
+  } catch (error: any) {
+    console.warn('SSE流式请求失败，回退到普通接口:', error?.message || error)
+    
+    // 回退到普通接口
+    try {
+      loadingStatus.value = '🔄 回退到普通模式...'
+      
+      // 显示模拟进度
+      const progressInterval = setInterval(() => {
+        if (loadingProgress.value < 90) {
+          loadingProgress.value += 5
+          if (loadingProgress.value <= 30) {
+            loadingStatus.value = '🔍 正在搜索景点...'
+          } else if (loadingProgress.value <= 50) {
+            loadingStatus.value = '🌤️ 正在查询天气...'
+          } else if (loadingProgress.value <= 70) {
+            loadingStatus.value = '🏨 正在推荐酒店...'
+          } else {
+            loadingStatus.value = '📋 正在生成行程计划...'
+          }
+        }
+      }, 800)
+
+      const response = await generateTripPlan(requestData)
+      
+      clearInterval(progressInterval)
+      loadingProgress.value = 100
+      loadingStatus.value = '✅ 完成!'
+
+      if (response.success && response.data) {
+        sessionStorage.setItem('tripPlan', JSON.stringify(response.data))
+        message.success('旅行计划生成成功!')
+        setTimeout(() => {
+          router.push('/result')
+        }, 500)
+      } else {
+        message.error(response.message || '生成失败')
+        loading.value = false
+        loadingProgress.value = 0
+        loadingStatus.value = ''
+      }
+    } catch (fallbackError: any) {
+      console.error('生成失败:', fallbackError)
+      message.error(fallbackError.message || '生成旅行计划失败,请稍后重试')
+      loading.value = false
+      loadingProgress.value = 0
+      loadingStatus.value = ''
+    }
   }
 }
 </script>

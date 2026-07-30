@@ -23,6 +23,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, Base
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from ..config import get_settings
 from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, WeatherInfo, Location, Hotel
+from ..models.llm_output import LLMTripPlan, LLMDayPlan, LLMAttraction, LLMMeal, LLMHotel, LLMCoordinates
 from ..services.cache_service import cache, CACHE_TTL_WEATHER, CACHE_TTL_ATTRACTION, CACHE_TTL_HOTEL
 
 
@@ -193,6 +194,14 @@ HOTEL_SYSTEM = """你是酒店推荐专家。你的任务是为用户搜索指�
 
 PLANNER_SYSTEM = """你是行程规划专家。根据收集到的景点、天气、酒店信息生成旅行计划JSON。
 
+**时间安排规则（必须严格遵守）:**
+- 早餐: 08:00-09:30
+- 上午景点活动: 09:30-12:00（至少1-2个景点）
+- 午餐: 12:00-14:00
+- 下午景点活动: 14:00-17:30（至少1-2个景点）
+- 晚餐: 18:00-20:00
+⚠️ 严禁午饭后直接安排晚饭！午饭(12:00-14:00)和晚饭(18:00-20:00)之间必须有下午景点活动！
+
 **JSON格式（严格按照此结构，每个字段都必须填写真实数据）:**
 ```json
 {
@@ -206,23 +215,27 @@ PLANNER_SYSTEM = """你是行程规划专家。根据收集到的景点、天气
     "weather": "天气简述",
     "accommodation": {"name": "酒店名", "address": "地址", "coordinate": [lng, lat], "price_range": "300-500元"},
     "activities": [
-      {"time": "09:00-11:30", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 150, "description": "景点描述", "category": "类别", "ticket_price": 60},
-      {"time": "14:00-16:00", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 120, "description": "景点描述", "category": "类别", "ticket_price": 0}
+      {"time": "09:30-11:30", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 120, "description": "景点描述", "category": "类别", "ticket_price": 60},
+      {"time": "14:00-16:00", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 120, "description": "景点描述", "category": "类别", "ticket_price": 0},
+      {"time": "16:30-17:30", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 60, "description": "景点描述", "category": "类别", "ticket_price": 0}
     ],
     "meals": [
-      {"type": "breakfast", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜1","招牌菜2"], "description": "推荐理由", "avg_cost": 30},
-      {"type": "lunch", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "avg_cost": 60},
-      {"type": "dinner", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "avg_cost": 90}
+      {"type": "breakfast", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜1","招牌菜2"], "description": "推荐理由", "estimated_cost": 30, "image_url": "可选，如无则留空"},
+      {"type": "lunch", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "estimated_cost": 60, "image_url": "可选，如无则留空"},
+      {"type": "dinner", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "estimated_cost": 90, "image_url": "可选，如无则留空"}
     ]
   }]
 }
 ```
 
 **关键要求:**
+- 每天至少3个活动：上午1-2个景点 + 下午1-2个景点
+- activities数组中的每个活动必须有time字段，且时间必须合理分布在上午和下午
 - 每个meal的restaurant必须是具体餐厅名称(字符串),不是对象
 - recommended_dishes必须是数组,包含1-3个真实菜名
 - 坐标(coordinates/coordinate)用[lng, lat]数组格式
 - 每天必须包含完整的早中晚三餐
+- 上午活动时间: 09:00-12:00，下午活动时间: 14:00-17:30
 - 直接返回JSON,不要包wrapper,不要用驼峰命名"""
 
 
@@ -568,7 +581,12 @@ class LangGraphTripPlanner:
         return {"hotels_info": result}
 
     async def _planner_node(self, state: PlannerState) -> dict:
-        print("📋 生成行程计划...")
+        """生成行程计划 (P3: 使用结构化输出)
+
+        使用 with_structured_output 让LLM直接返回符合Schema的结构化数据，
+        避免JSON格式不稳定导致的解析问题。
+        """
+        print("📋 生成行程计划 (P3结构化输出)...")
 
         is_strict = state.get("reference_mode") == "strict"
         is_hybrid = state.get("reference_mode") == "hybrid"
@@ -584,8 +602,12 @@ class LangGraphTripPlanner:
 **天气:** {state.get('weather_info', '')[:1500]}
 **酒店:** {state.get('hotels_info', '')[:1500]}
 
-注意: 酒店是基于景点坐标进行的周边搜索，优先选择与景点群地理就近的酒店。
-每天2-3个景点, 地理就近排列, 每餐推荐具体餐厅(名称+地址+坐标+招牌菜)。返回完整JSON。"""
+注意: 
+- 酒店是基于景点坐标进行的周边搜索，优先选择与景点群地理就近的酒店
+- 每天上午1-2个景点(09:30-12:00)，下午1-2个景点(14:00-17:30)
+- 每餐推荐具体餐厅(名称+地址+坐标+招牌菜)
+- 严禁午饭后直接安排晚饭，午饭(12:00-14:00)和晚饭(18:00-20:00)之间必须有下午景点活动"""
+
         if state.get("free_text_input"):
             query += f"\n额外要求: {state['free_text_input']}"
 
@@ -598,12 +620,30 @@ class LangGraphTripPlanner:
             else:
                 query += f"\n💡 灵感模式: 参考风格,不直接用具体地点\n{ref}"
 
-        response = await self.llm.ainvoke([
-            SystemMessage(content=PLANNER_SYSTEM),
-            HumanMessage(content=query)
-        ])
-        print(f"   行程生成完成 ({len(response.content)} 字符)")
-        return {"trip_plan_json": response.content}
+        # P3: 使用结构化输出
+        try:
+            # 尝试使用结构化输出
+            structured_llm = self.llm.with_structured_output(LLMTripPlan)
+            response = await structured_llm.ainvoke([
+                SystemMessage(content=PLANNER_SYSTEM),
+                HumanMessage(content=query)
+            ])
+            print(f"   ✅ 结构化输出生成完成: {len(response.days)}天")
+            
+            # 将结构化对象序列化为JSON字符串，保持向后兼容
+            import json
+            trip_plan_json = response.model_dump_json(indent=2)
+            return {"trip_plan_json": trip_plan_json}
+            
+        except Exception as e:
+            print(f"   ⚠️ 结构化输出失败({e})，回退到普通输出...")
+            # 回退方案: 使用普通输出
+            response = await self.llm.ainvoke([
+                SystemMessage(content=PLANNER_SYSTEM),
+                HumanMessage(content=query)
+            ])
+            print(f"   行程生成完成 (回退模式, {len(response.content)} 字符)")
+            return {"trip_plan_json": response.content}
 
     # ============ 主 Graph ============
 
@@ -742,6 +782,88 @@ class LangGraphTripPlanner:
 
     # ============ 公共接口 ============
 
+    async def plan_trip_stream(
+        self, 
+        request: TripRequest, 
+        progress_callback=None
+    ) -> TripPlan:
+        """带进度回调的流式规划方法 (P4: SSE支持)
+
+        使用后台定时器模拟进度更新，同时执行实际规划。
+        
+        Args:
+            request: 旅行请求
+            progress_callback: 进度回调函数 async def callback(progress: int, message: str)
+
+        Returns:
+            TripPlan 旅行计划
+        """
+        import asyncio
+        
+        print(f"\n{'='*60}")
+        print(f"🚀 [LangGraph ReAct Stream] {request.city} | {request.travel_days}天")
+        print(f"{'='*60}")
+
+        async def emit_progress(percent: int, message: str):
+            if progress_callback:
+                await progress_callback(percent, message)
+            print(f"   📊 [{percent}%] {message}")
+
+        # 进度状态
+        progress_state = {"current": 0, "completed": False}
+        
+        # 后台定时器，定期发送进度
+        async def progress_timer():
+            steps = [
+                (5, "正在初始化..."),
+                (15, "正在初始化..."),
+                (25, "🔍 正在搜索景点..."),
+                (35, "🔍 正在搜索景点..."),
+                (45, "🌤️ 正在查询天气..."),
+                (55, "🌤️ 正在查询天气..."),
+                (65, "🏨 正在搜索酒店..."),
+                (75, "🏨 正在搜索酒店..."),
+                (85, "📋 正在生成行程计划..."),
+                (92, "📋 正在生成行程计划..."),
+            ]
+            
+            for percent, message in steps:
+                if progress_state["completed"]:
+                    break
+                if percent > progress_state["current"]:
+                    progress_state["current"] = percent
+                    await emit_progress(percent, message)
+                await asyncio.sleep(2)
+
+        # 启动进度定时器
+        timer_task = asyncio.create_task(progress_timer())
+
+        try:
+            # 先发送初始进度
+            await emit_progress(5, "正在初始化...")
+            
+            # 执行实际规划（复用已有的plan_trip_async逻辑）
+            trip_plan = await self.plan_trip_async(request)
+            
+            # 标记完成，停止定时器
+            progress_state["completed"] = True
+            timer_task.cancel()
+            
+            # 发送完成进度
+            await emit_progress(100, "✅ 规划完成!")
+            print("✅ [LangGraph ReAct Stream] 规划完成!")
+            
+            return trip_plan
+            
+        except Exception as e:
+            progress_state["completed"] = True
+            timer_task.cancel()
+            print(f"❌ 失败: {e}")
+            import traceback
+            traceback.print_exc()
+            await emit_progress(100, f"规划失败: {str(e)}")
+            return _create_fallback_plan(request)
+
     async def plan_trip_async(self, request: TripRequest) -> TripPlan:
         print(f"\n{'='*60}")
         print(f"🚀 [LangGraph ReAct] {request.city} | {request.travel_days}天")
@@ -769,7 +891,27 @@ class LangGraphTripPlanner:
 
         try:
             result = await graph.ainvoke(state)
-            trip_plan = _parse_plan_json(result.get("trip_plan_json", ""), request)
+            trip_plan_json = result.get("trip_plan_json", "")
+            
+            # P3: 优先尝试使用结构化输出转换
+            trip_plan = None
+            try:
+                import json as _json
+                raw_data = _json.loads(trip_plan_json)
+                # 检查是否符合LLMTripPlan结构
+                if "city" in raw_data and "days" in raw_data:
+                    llm_output = LLMTripPlan(**raw_data)
+                    trip_plan = _convert_llm_to_tripplan(llm_output, request)
+                    print("✅ [P3结构化输出] 转换成功!")
+                else:
+                    print("⚠️ 数据结构不符合LLMTripPlan，使用原解析器")
+            except Exception as e:
+                print(f"⚠️ 结构化转换失败({e})，使用原解析器")
+            
+            # 如果结构化转换失败，使用原解析器
+            if trip_plan is None:
+                trip_plan = _parse_plan_json(trip_plan_json, request)
+            
             print("✅ [LangGraph ReAct] 规划完成!")
             return trip_plan
         except Exception as e:
@@ -793,6 +935,141 @@ def _extract_place_names(content: str, city: str) -> List[str]:
             seen.add(n)
             result.append(n)
     return result[:5]
+
+
+# ============ P3: 结构化输出转换函数 ============
+
+def _convert_llm_to_tripplan(llm_output: LLMTripPlan, request: TripRequest) -> TripPlan:
+    """将LLM结构化输出转换为系统内部TripPlan模型
+
+    P3优化: 使用with_structured_output后，LLM直接返回符合Schema的数据，
+    无需复杂的JSON解析和兜底处理。
+    """
+    print(f"   📊 转换LLM结构化输出: {len(llm_output.days)}天")
+
+    # 转换酒店
+    hotel = None
+    if llm_output.hotel:
+        hotel = Hotel(
+            name=llm_output.hotel.name,
+            address=llm_output.hotel.address,
+            location=Location(
+                longitude=llm_output.hotel.coordinates.longitude,
+                latitude=llm_output.hotel.coordinates.latitude
+            ),
+            price_range=llm_output.hotel.price_range,
+            rating=llm_output.hotel.rating,
+            type=request.accommodation,
+        )
+
+    # 转换每天的行程
+    days = []
+    for day_data in llm_output.days:
+        # 转换景点
+        attractions = []
+        for attr in day_data.attractions:
+            attractions.append(Attraction(
+                name=attr.name,
+                address=attr.address,
+                location=Location(
+                    longitude=attr.coordinates.longitude,
+                    latitude=attr.coordinates.latitude
+                ),
+                visit_duration=attr.duration_minutes,
+                description=attr.description,
+                category=attr.category,
+                ticket_price=attr.ticket_price,
+                rating=attr.rating,
+                time=attr.time,
+                time_period=_infer_time_period(attr.time),
+            ))
+
+        # 转换餐饮
+        meals = []
+        for meal in day_data.meals:
+            meals.append(Meal(
+                type=meal.meal_type,
+                name=meal.restaurant,
+                restaurant=meal.restaurant,
+                address=meal.address,
+                location=Location(
+                    longitude=meal.coordinates.longitude,
+                    latitude=meal.coordinates.latitude
+                ),
+                description=meal.description,
+                recommended_dish=meal.recommended_dishes[0] if meal.recommended_dishes else None,
+                estimated_cost=meal.estimated_cost,
+                image_url=meal.image_url,
+            ))
+
+        # 计算预算
+        total_attractions = sum(a.ticket_price for a in attractions)
+        total_meals = sum(m.estimated_cost for m in meals)
+
+        days.append(DayPlan(
+            date=day_data.date,
+            day_index=day_data.day_index,
+            description=day_data.description,
+            transportation=request.transportation,
+            accommodation=request.accommodation,
+            hotel=hotel if day_data.day_index == len(llm_output.days) - 1 else None,
+            attractions=attractions,
+            meals=meals,
+        ))
+
+    # 计算总预算
+    total_hotel = 0
+    if hotel:
+        try:
+            price_str = hotel.price_range
+            import re
+            prices = re.findall(r'\d+', price_str)
+            if prices:
+                total_hotel = int(prices[0]) * len(days)
+        except (ValueError, IndexError):
+            pass
+
+    total_attractions = sum(
+        sum(a.ticket_price for a in day.attractions)
+        for day in days
+    )
+    total_meals = sum(
+        sum(m.estimated_cost for m in day.meals)
+        for day in days
+    )
+    total = total_attractions + total_hotel + total_meals
+
+    return TripPlan(
+        city=llm_output.city,
+        start_date=llm_output.start_date,
+        end_date=llm_output.end_date,
+        days=days,
+        overall_suggestions=llm_output.overall_suggestions,
+        budget={
+            "total_attractions": total_attractions,
+            "total_hotels": total_hotel,
+            "total_meals": total_meals,
+            "total_transportation": 0,
+            "total": total,
+        },
+    )
+
+
+def _infer_time_period(time_str: str) -> str:
+    """根据时间字符串推断时段(复用已有的逻辑)"""
+    if not time_str:
+        return ""
+    import re
+    match = re.match(r'(\d{1,2}):(\d{2})', time_str)
+    if match:
+        hour = int(match.group(1))
+        if hour < 12:
+            return "morning"
+        elif hour < 18:
+            return "afternoon"
+        else:
+            return "evening"
+    return ""
 
 
 def _parse_plan_json(response: str, request: TripRequest) -> TripPlan:
@@ -839,15 +1116,185 @@ def _parse_plan_json(response: str, request: TripRequest) -> TripPlan:
         if "budget" not in data:
             data["budget"] = data.get("totalBudget", data.get("budgets", data.get("cost")))
 
-        # ---- days 别名映射 ----
-        for alt in ("days", "daily_plan", "daily_plans", "dailyPlans", "itinerary", "schedule", "daily_schedule", "dayPlans"):
+        # ---- days 智能别名映射 ----
+        # 优先使用 days 字段（如果存在且结构正确）
+        days_candidates = ["days", "daily_plan", "daily_plans", "dailyPlans", "daily_schedule", "dayPlans"]
+        
+        days_found = False
+        for alt in days_candidates:
             if alt in data:
-                data["days"] = data.pop(alt)
-                break
+                candidate = data[alt]
+                # 验证结构：检查是否为有效的天数数组
+                if isinstance(candidate, list) and len(candidate) > 0:
+                    first_item = candidate[0]
+                    if isinstance(first_item, dict):
+                        # 检查是否包含天的特征字段
+                        day_indicators = {"date", "day", "attractions", "meals", "activities", 
+                                        "accommodation", "description", "transportation"}
+                        item_keys = set(first_item.keys())
+                        # 如果有超过2个天的特征字段，认为这是天的数组
+                        if len(item_keys & day_indicators) >= 2:
+                            data["days"] = data.pop(alt)
+                            days_found = True
+                            print(f"   📅 使用 '{alt}' 作为天数数组 ({len(candidate)}天)")
+                            break
+                print(f"   ⚠️ '{alt}' 存在但结构不是天数数组，跳过")
+                # 移除无效的候选字段
+                if alt != "days":
+                    data.pop(alt)
+                    
+        # 如果找不到有效的days，尝试从itinerary/schedule中提取
+        if not days_found:
+            print(f"   ⚠️ 未找到有效天数数组，尝试从行程项中提取...")
+            # itinerary可能是行程项数组，需要按天分组
+            for src in ("itinerary", "schedule", "activities"):
+                if src in data and isinstance(data[src], list) and len(data[src]) > 0:
+                    items = data[src]
+                    # 检查items是否已经按天分组（嵌套结构）
+                    first_item = items[0] if items else {}
+                    if isinstance(first_item, dict) and "attractions" in first_item:
+                        # 这可能是嵌套结构，直接作为days
+                        data["days"] = items
+                        print(f"   📅 从 '{src}' 提取天数数组 ({len(items)}天)")
+                        days_found = True
+                        break
+                    else:
+                        # 这是扁平结构（行程项列表），需要特殊处理
+                        # 创建一个汇总天来包含所有项目
+                        print(f"   ⚠️ '{src}' 是扁平行程项列表，需要特殊处理")
+                        # 将所有行程项放在第一天
+                        all_attrs = []
+                        all_meals = []
+                        for item in items:
+                            if isinstance(item, dict):
+                                # 简单归类：有restaurant/food相关的作为meal，其他作为attraction
+                                item_text = str(item.get("activity", "")) + str(item.get("name", "")) + str(item.get("type", ""))
+                                if any(kw in item_text.lower() for kw in ["restaurant", "food", "meal", "dinner", "lunch", "breakfast", "餐", "食"]):
+                                    all_meals.append(item)
+                                else:
+                                    all_attrs.append(item)
+                        
+                        # 创建days数组
+                        days_list = []
+                        for day_idx in range(request.travel_days):
+                            day_data = {
+                                "date": "",
+                                "description": f"第{day_idx+1}天行程",
+                                "attractions": all_attrs if day_idx == 0 else [],
+                                "meals": all_meals if day_idx == 0 else []
+                            }
+                            days_list.append(day_data)
+                        
+                        data["days"] = days_list
+                        print(f"   📅 创建{len(days_list)}天行程（从扁平列表）")
+                        days_found = True
+                        break
+                if days_found:
+                    break
 
         # ---- 规范化每个 day ----
+        raw_days = data.get("days", [])
+        print(f"   📋 原始天数: {len(raw_days)}, 期望天数: {request.travel_days}")
+        
+        # 如果days数量超过期望数量，可能是LLM错误地将行程项当作天数
+        # 需要进行验证和修正
+        days_to_process = raw_days
+        
+        # 检查每个raw_day是否像一个"天"而不是一个"行程项"
+        valid_days = []
+        invalid_items = []
+        for idx, raw_day in enumerate(raw_days):
+            if not isinstance(raw_day, dict):
+                invalid_items.append(raw_day)
+                continue
+                
+            # 检查是否有天的特征字段
+            day_indicators = {"date", "day", "attractions", "meals", "activities", 
+                            "accommodation", "description", "transportation", "weather"}
+            item_keys = set(raw_day.keys())
+            match_count = len(item_keys & day_indicators)
+            
+            # 如果只有0-1个特征字段，可能不是天而是行程项
+            if match_count < 2:
+                print(f"   ⚠️ 第{idx}项特征字段过少({match_count}个),可能是行程项而非天数")
+                invalid_items.append(raw_day)
+            else:
+                valid_days.append(raw_day)
+        
+        # 如果发现无效项，尝试将它们合并到有效天数中
+        if invalid_items:
+            print(f"   🔄 发现{len(invalid_items)}个无效项，尝试合并到有效天数中...")
+            if valid_days:
+                # 将无效项中的景点/餐厅信息合并到第一个有效天
+                for item in invalid_items:
+                    if isinstance(item, dict):
+                        first_valid = valid_days[0]
+                        # 尝试提取景点和餐饮
+                        attrs = _find_item_list(item)
+                        meals = _find_meal_list(item)
+                        if attrs:
+                            existing_attrs = first_valid.get("attractions", [])
+                            first_valid["attractions"] = existing_attrs + attrs
+                        if meals:
+                            existing_meals = first_valid.get("meals", [])
+                            first_valid["meals"] = existing_meals + meals
+                days_to_process = valid_days
+            else:
+                # 如果没有有效天，将所有项合并为一个天
+                print(f"   ⚠️ 没有有效天数，将所有项合并为第一天")
+                all_attrs = []
+                all_meals = []
+                for item in raw_days:
+                    if isinstance(item, dict):
+                        attrs = _find_item_list(item)
+                        meals = _find_meal_list(item)
+                        if attrs:
+                            all_attrs.extend(attrs)
+                        if meals:
+                            all_meals.extend(meals)
+                merged_day = {
+                    "date": "",
+                    "description": "行程汇总",
+                    "attractions": all_attrs,
+                    "meals": all_meals
+                }
+                days_to_process = [merged_day]
+        
+        # 如果天数不足，复制最后一天或创建占位天
+        if len(days_to_process) < request.travel_days:
+            print(f"   ⚠️ 天数不足: {len(days_to_process)} < {request.travel_days}, 补充天数")
+            while len(days_to_process) < request.travel_days:
+                if days_to_process:
+                    # 复制最后一天作为模板
+                    template = dict(days_to_process[-1])
+                    template["attractions"] = []
+                    template["meals"] = []
+                    days_to_process.append(template)
+                else:
+                    days_to_process.append({"date": "", "description": f"第{len(days_to_process)+1}天"})
+        
+        # 如果天数过多，截断到期望数量
+        if len(days_to_process) > request.travel_days:
+            print(f"   ⚠️ 天数过多: {len(days_to_process)} > {request.travel_days}, 截断到{request.travel_days}天")
+            # 保留前N天，将多出的天的内容合并到最后一天
+            extra_days = days_to_process[request.travel_days:]
+            days_to_process = days_to_process[:request.travel_days]
+            # 将额外天的景点/餐厅合并到最后一天
+            if extra_days and days_to_process:
+                last_day = days_to_process[-1]
+                for extra in extra_days:
+                    if isinstance(extra, dict):
+                        attrs = _find_item_list(extra)
+                        meals = _find_meal_list(extra)
+                        if attrs:
+                            existing = last_day.get("attractions", [])
+                            last_day["attractions"] = existing + attrs
+                        if meals:
+                            existing = last_day.get("meals", [])
+                            last_day["meals"] = existing + meals
+        
         normalized_days = []
-        for i, raw_day in enumerate(data.get("days", [])):
+        for i, raw_day in enumerate(days_to_process):
             if i == 0:
                 print(f"   🔍 Day0 raw keys: {list(raw_day.keys())}")
                 # 打印所有list类型value的key
@@ -873,7 +1320,7 @@ def _parse_plan_json(response: str, request: TripRequest) -> TripPlan:
 
             day = {
                 "date": raw_day.get("date", raw_day.get("day_date", "")),
-                "day_index": _normalize_day_index(raw_day, i),
+                "day_index": i,
                 "description": raw_day.get("description", raw_day.get("summary", raw_day.get("desc", raw_day.get("overview", "")))),
                 "transportation": raw_day.get("transportation", raw_day.get("transport", request.transportation)),
                 "accommodation": acc_str,
@@ -889,6 +1336,17 @@ def _parse_plan_json(response: str, request: TripRequest) -> TripPlan:
                     day["meals"].append({"type": mt, "name": f"第{i+1}天{'早午晚'[mi]}餐", "description": "当地美食"})
 
             normalized_days.append(day)
+
+        # 最终验证：确保day_index唯一且连续
+        day_indices = [d["day_index"] for d in normalized_days]
+        print(f"   ✅ 最终天数: {len(normalized_days)}, day_indices: {day_indices}")
+        
+        # 如果有重复的day_index，重新分配
+        if len(set(day_indices)) != len(normalized_days):
+            print(f"   ⚠️ 检测到重复的day_index，重新分配...")
+            for i, day in enumerate(normalized_days):
+                day["day_index"] = i
+            print(f"   ✅ 修正后day_indices: {[d['day_index'] for d in normalized_days]}")
 
         data["days"] = normalized_days
 
@@ -992,15 +1450,12 @@ def _find_hotel_in_day(raw_day: dict) -> dict | None:
     return None
 
 def _normalize_day_index(raw_day: dict, fallback: int) -> int:
-    """规范化day_index: 支持1-based和0-based"""
-    val = raw_day.get("day_index", raw_day.get("dayIndex", raw_day.get("day", raw_day.get("day_number", fallback + 1))))
-    try:
-        val = int(val)
-    except (ValueError, TypeError):
-        val = fallback
-    if val >= 1:
-        val -= 1
-    return max(0, val)
+    """规范化day_index: 直接用循环索引，不信任LLM返回的day_index
+    
+    LLM返回的day_index经常不一致(0-based/1-based混用或缺失)，
+    而days数组本身已经按顺序排列好，所以直接用循环索引fallback。
+    """
+    return fallback
 
 def _normalize_hotel(h: dict) -> dict:
     """规范化酒店字段"""
@@ -1023,8 +1478,16 @@ def _normalize_attraction(a: dict) -> dict:
     loc = _normalize_location(a.get("location", a.get("coordinate", a.get("coordinates", a.get("coord")))))
 
     # visit_duration: 可能是整数(分钟)、字符串时间范围("09:00-11:30")、或其他
-    dur_raw = a.get("visit_duration", a.get("visitDuration", a.get("duration", a.get("time", 120))))
+    dur_raw = a.get("visit_duration", a.get("visitDuration", a.get("duration", 120)))
     dur = _parse_duration(dur_raw)
+
+    # 提取活动时间段
+    time_str = a.get("time", a.get("time_range", a.get("schedule", "")))
+    
+    # 推断时段: 根据时间字符串判断是上午还是下午
+    time_period = a.get("time_period", "")
+    if not time_period and time_str:
+        time_period = _infer_time_period(time_str)
 
     return {
         "name": name,
@@ -1033,10 +1496,37 @@ def _normalize_attraction(a: dict) -> dict:
         "visit_duration": dur,
         "description": a.get("description", a.get("desc", a.get("detail", ""))),
         "category": a.get("category", a.get("type", "景点")),
-        "ticket_price": int(a.get("ticket_price", a.get("ticketPrice", a.get("price", a.get("cost", 0)))) or 0),
+        "ticket_price": int(a.get("ticket_price", a.get("ticketPrice", a.get("price", a.get("cost", 0))) or 0)),
         "rating": a.get("rating", a.get("rate")),
-        "image_url": a.get("image_url", a.get("imageUrl"))
+        "image_url": a.get("image_url", a.get("imageUrl")),
+        "time": time_str,
+        "time_period": time_period
     }
+
+
+def _infer_time_period(time_str: str) -> str:
+    """根据时间字符串推断时段
+    
+    上午: 9:00-12:00
+    下午: 12:00-18:00
+    晚上: 18:00之后
+    """
+    if not time_str:
+        return ""
+    
+    import re
+    # 匹配 "HH:MM" 或 "HH:MM-HH:MM"
+    match = re.match(r'(\d{1,2}):(\d{2})', time_str)
+    if match:
+        hour = int(match.group(1))
+        if hour < 12:
+            return "morning"
+        elif hour < 18:
+            return "afternoon"
+        else:
+            return "evening"
+    
+    return ""
 
 
 def _parse_duration(val) -> int:

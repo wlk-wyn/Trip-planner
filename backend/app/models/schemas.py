@@ -75,6 +75,8 @@ class Attraction(BaseModel):
     poi_id: Optional[str] = Field(default="", description="POI ID")
     image_url: Optional[str] = Field(default=None, description="图片URL")
     ticket_price: int = Field(default=0, description="门票价格(元)")
+    time: Optional[str] = Field(default=None, description="活动时间段,如'09:30-11:30'")
+    time_period: Optional[str] = Field(default=None, description="时段: morning/afternoon/evening")
 
 
 class Meal(BaseModel):

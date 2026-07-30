@@ -514,7 +514,48 @@ let map: any = null
 onMounted(async () => {
   const data = sessionStorage.getItem('tripPlan')
   if (data) {
-    tripPlan.value = JSON.parse(data)
+    const planData = JSON.parse(data)
+    
+    // 验证和修正days数据
+    if (planData.days && Array.isArray(planData.days)) {
+      console.log(`📅 接收到 ${planData.days.length} 天数据`)
+      
+      // 检查day_index是否正确
+      const dayIndices = planData.days.map((d: any, i: number) => ({
+        index: i,
+        day_index: d.day_index,
+        date: d.date
+      }))
+      console.log('📅 days数据:', dayIndices)
+      
+      // 修正day_index：确保从0开始连续
+      let needsFix = false
+      for (let i = 0; i < planData.days.length; i++) {
+        if (planData.days[i].day_index !== i) {
+          console.warn(`⚠️ day_index不匹配: 期望${i}, 实际${planData.days[i].day_index}`)
+          needsFix = true
+          break
+        }
+      }
+      
+      if (needsFix) {
+        console.log('🔧 修正day_index...')
+        planData.days.forEach((day: any, i: number) => {
+          day.day_index = i
+        })
+      }
+      
+      // 检查是否有重复的day_index
+      const uniqueIndices = new Set(planData.days.map((d: any) => d.day_index))
+      if (uniqueIndices.size !== planData.days.length) {
+        console.warn('⚠️ 检测到重复的day_index，重新分配...')
+        planData.days.forEach((day: any, i: number) => {
+          day.day_index = i
+        })
+      }
+    }
+    
+    tripPlan.value = planData
     activeDays.value = tripPlan.value.days.map((_, i) => i)
     await loadAttractionPhotos()
     await nextTick()
@@ -606,7 +647,7 @@ const openAlternatives = async (type: 'attraction' | 'meal', dayIdx: number, ite
   if (day.meals) ctxParts.push(`已安排餐厅: ${day.meals.map((m: any) => m.restaurant || m.name).join('、')}`)
 
   try {
-    const res = await fetch('http://localhost:8000/api/trip/alternatives', {
+    const res = await fetch('/api/trip/alternatives', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -683,7 +724,7 @@ const handleAddSearch = async () => {
   addResults.value = []
   addSearchDone.value = false
   try {
-    const res = await fetch('http://localhost:8000/api/trip/search-poi', {
+    const res = await fetch('/api/trip/search-poi', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ keyword: kw, city: tripPlan.value!.city })
     })
@@ -747,7 +788,7 @@ const handleReoptimize = async (dayIdx: number) => {
   if (points.length < 2) { reoptLoading.value = -1; message.warning('至少需要2个有坐标的点才能优化'); return }
 
   try {
-    const res = await fetch('http://localhost:8000/api/trip/reoptimize', {
+    const res = await fetch('/api/trip/reoptimize', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ day_points: points.map(p => ({ lat: p.lat, lng: p.lng, type: p.type })) })
     })
@@ -809,15 +850,21 @@ const getMealLabel = (type: string): string => {
   return labels[type] || type
 }
 
-// 获取美食图片
+// 获取美食图片 - 优先级: LLM提供的image_url > API获取 > SVG占位图
 const getMealImage = (meal: any, dayIndex: number): string => {
+  // 优先级1: LLM结构化输出提供的image_url
+  if (meal.image_url) {
+    return meal.image_url
+  }
+
+  // 优先级2: 缓存的API获取图片
   const searchName = meal.restaurant || meal.name
   const key = `${searchName}_${dayIndex}`
-
   if (mealPhotos.value[key]) {
     return mealPhotos.value[key]
   }
 
+  // 优先级3: 使用SVG占位图
   const gradients = [
     { start: '#e74c3c', end: '#c0392b', icon: '🍜', pattern: 'noodles' },
     { start: '#f39c12', end: '#d35400', icon: '🥘', pattern: 'hotpot' },
@@ -859,9 +906,9 @@ const loadAttractionPhotos = async () => {
   const promises: Promise<void>[] = []
 
   tripPlan.value.days.forEach(day => {
-    // 景点图片
+    // 景点图片 - 使用相对路径，通过Vite代理
     day.attractions.forEach(attraction => {
-      const promise = fetch(`http://localhost:8000/api/poi/photo?name=${encodeURIComponent(attraction.name)}&city=${city}`)
+      const promise = fetch(`/api/poi/photo?name=${encodeURIComponent(attraction.name)}&city=${city}`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.data.photo_url) {
@@ -882,7 +929,7 @@ const loadAttractionPhotos = async () => {
 
       // 策略1: 短餐厅名
       const p1 = restName
-        ? fetch(`http://localhost:8000/api/poi/photo?name=${encodeURIComponent(restName)}&city=${city}`)
+        ? fetch(`/api/poi/photo?name=${encodeURIComponent(restName)}&city=${city}`)
             .then(res => res.json()).then(data => {
               if (data.success && data.data?.photo_url) mealPhotos.value[key] = data.data.photo_url
             }).catch(() => {})
@@ -890,7 +937,7 @@ const loadAttractionPhotos = async () => {
 
       // 策略2: 推荐菜
       const p2 = dishName
-        ? fetch(`http://localhost:8000/api/poi/photo?name=${encodeURIComponent(dishName)}&city=${city}`)
+        ? fetch(`/api/poi/photo?name=${encodeURIComponent(dishName)}&city=${city}`)
             .then(res => res.json()).then(data => {
               if (data.success && data.data?.photo_url && !mealPhotos.value[key]) mealPhotos.value[key] = data.data.photo_url
             }).catch(() => {})
@@ -898,7 +945,7 @@ const loadAttractionPhotos = async () => {
 
       // 策略3: 通用美食
       const p3 = !mealPhotos.value[key]
-        ? fetch(`http://localhost:8000/api/poi/photo?name=food&city=${city}`)
+        ? fetch(`/api/poi/photo?name=food&city=${city}`)
             .then(res => res.json()).then(data => {
               if (data.success && data.data?.photo_url && !mealPhotos.value[key]) mealPhotos.value[key] = data.data.photo_url
             }).catch(() => {})
@@ -1345,30 +1392,69 @@ const initDayMiniMap = async (dayIndex: number) => {
     dayMiniMaps[dayIndex] = miniMap
     dayMapsInitialized.value[dayIndex] = true
 
-    // 收集所有途径点（按时序排列）
+    // 收集所有途径点（按时间顺序排列）
     const waypoints: any[] = []
 
     // 早餐
     const breakfast = day.meals.find((m: any) => m.type === 'breakfast')
     if (breakfast?.location?.longitude) {
-      waypoints.push({ ...breakfast, type: 'breakfast', label: '早餐', icon: '☀️', color: '#FF9800' })
+      waypoints.push({ ...breakfast, type: 'breakfast', label: '早餐', icon: '☀️', color: '#FF9800', time: '08:00' })
     }
-    // 景点
-    day.attractions.forEach((attr: any, i: number) => {
+    
+    // 将景点按时段分组
+    const morningAttractions = day.attractions.filter((a: any) => a.time_period === 'morning')
+    const afternoonAttractions = day.attractions.filter((a: any) => a.time_period === 'afternoon' || a.time_period === 'evening')
+    const uncategorizedAttractions = day.attractions.filter((a: any) => !a.time_period)
+    
+    // 上午景点
+    morningAttractions.forEach((attr: any) => {
       if (attr.location?.longitude) {
-        waypoints.push({ ...attr, type: 'attraction', label: attr.name, icon: '🏛️', color: '#4CAF50' })
+        waypoints.push({ ...attr, type: 'attraction', label: attr.name, icon: '🏛️', color: '#4CAF50', time: attr.time })
       }
     })
+    
+    // 未分类景点：前半部分放上午
+    if (uncategorizedAttractions.length > 0) {
+      const midpoint = Math.ceil(uncategorizedAttractions.length / 2)
+      const morningHalf = uncategorizedAttractions.slice(0, midpoint)
+      
+      morningHalf.forEach((attr: any) => {
+        if (attr.location?.longitude) {
+          waypoints.push({ ...attr, type: 'attraction', label: attr.name, icon: '🏛️', color: '#4CAF50', time: attr.time })
+        }
+      })
+    }
+    
     // 午餐
     const lunch = day.meals.find((m: any) => m.type === 'lunch')
     if (lunch?.location?.longitude) {
-      waypoints.push({ ...lunch, type: 'lunch', label: '午餐', icon: '🌤️', color: '#FF9800' })
+      waypoints.push({ ...lunch, type: 'lunch', label: '午餐', icon: '🌤️', color: '#FF9800', time: '12:00' })
     }
+    
+    // 下午景点
+    afternoonAttractions.forEach((attr: any) => {
+      if (attr.location?.longitude) {
+        waypoints.push({ ...attr, type: 'attraction', label: attr.name, icon: '🏛️', color: '#4CAF50', time: attr.time })
+      }
+    })
+    
+    // 未分类的后半部分景点放到下午
+    if (uncategorizedAttractions.length > 0) {
+      const midpoint = Math.ceil(uncategorizedAttractions.length / 2)
+      const afternoonHalf = uncategorizedAttractions.slice(midpoint)
+      afternoonHalf.forEach((attr: any) => {
+        if (attr.location?.longitude) {
+          waypoints.push({ ...attr, type: 'attraction', label: attr.name, icon: '🏛️', color: '#4CAF50', time: attr.time })
+        }
+      })
+    }
+    
     // 晚餐
     const dinner = day.meals.find((m: any) => m.type === 'dinner')
     if (dinner?.location?.longitude) {
-      waypoints.push({ ...dinner, type: 'dinner', label: '晚餐', icon: '🌙', color: '#FF9800' })
+      waypoints.push({ ...dinner, type: 'dinner', label: '晚餐', icon: '🌙', color: '#FF9800', time: '18:00' })
     }
+    
     // 酒店
     if (day.hotel?.location?.longitude) {
       waypoints.push({ ...day.hotel, type: 'hotel', label: day.hotel.name, icon: '🏨', color: '#1976d2' })
