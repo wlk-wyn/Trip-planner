@@ -8,6 +8,8 @@ START ─┬─→ AttractionReAct ─┐
        └─→ HotelReAct      ┘
        每个 ReAct 节点内部: agent ⇄ tools (条件循环)
        三个搜索节点并行执行，全部完成后进入规划节点
+
+P5 优化: 使用 MCPConnectionManager 管理连接池
 """
 
 import os
@@ -20,11 +22,11 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, BaseMessage, ToolMessage
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from ..config import get_settings
 from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, WeatherInfo, Location, Hotel
 from ..models.llm_output import LLMTripPlan, LLMDayPlan, LLMAttraction, LLMMeal, LLMHotel, LLMCoordinates
 from ..services.cache_service import cache, CACHE_TTL_WEATHER, CACHE_TTL_ATTRACTION, CACHE_TTL_HOTEL
+from ..services.mcp_manager import get_mcp_manager
 
 
 # ============ 酒店特殊要求关键词 ============
@@ -242,7 +244,10 @@ PLANNER_SYSTEM = """你是行程规划专家。根据收集到的景点、天气
 # ============ LangGraph ReAct Planner ============
 
 class LangGraphTripPlanner:
-    """基于 LangGraph ReAct 的多智能体旅行规划器"""
+    """基于 LangGraph ReAct 的多智能体旅行规划器
+
+    P5优化: 使用 MCPConnectionManager 管理连接池
+    """
 
     def __init__(self):
         settings = get_settings()
@@ -252,45 +257,30 @@ class LangGraphTripPlanner:
             base_url=os.getenv("LLM_BASE_URL", "https://api.deepseek.com"),
             temperature=0.7
         )
-        self.mcp_client = None
-        self.tools = []
-        self._initialized = False
+        # P5: 使用全局 MCP 管理器
+        self._mcp_manager = get_mcp_manager()
 
     async def _ensure_initialized(self):
-        if self._initialized:
-            return
-        settings = get_settings()
-        try:
-            self.mcp_client = MultiServerMCPClient({
-                "amap": {
-                    "command": "uvx",
-                    "args": ["amap-mcp-server"],
-                    "env": {"AMAP_MAPS_API_KEY": settings.amap_api_key},
-                    "transport": "stdio"
-                }
-            })
-            self.tools = await self.mcp_client.get_tools()
-            self._tool_index = {getattr(t, "name", str(t)): t for t in self.tools}
-            self._initialized = True
-            print(f"✅ LangGraph MCP 工具: {len(self.tools)} 个")
-        except Exception as e:
-            print(f"⚠️ MCP 加载失败: {e}")
-            self.tools = []
-            self._tool_index = {}
-            self._initialized = True
+        """确保 MCP 连接可用 (P5优化: 使用连接管理器)"""
+        await self._mcp_manager.ensure_connected()
 
     def _get_tool(self, name: str):
-        """按名称获取MCP工具"""
-        return self._tool_index.get(name)
+        """按名称获取MCP工具 (P5优化: 从管理器获取)"""
+        return self._mcp_manager.get_tool(name)
 
     async def _call_tool_direct(self, tool_name: str, arguments: dict) -> str:
-        """直接调用MCP工具，返回结果字符串（不走ReAct循环）"""
+        """直接调用MCP工具，返回结果字符串（不走ReAct循环）
+
+        P5优化: 添加请求记录和错误跟踪
+        """
         tool = self._get_tool(tool_name)
         if tool is None:
             print(f"   ⚠️ 未找到工具: {tool_name}，回退到ReAct")
+            self._mcp_manager.record_request(success=False)
             return ""
         try:
             result = await tool.ainvoke(arguments)
+            self._mcp_manager.record_request(success=True)
             # Tool调用结果可能是ToolMessage或str
             if isinstance(result, ToolMessage):
                 content = result.content
@@ -314,6 +304,7 @@ class LangGraphTripPlanner:
             return str(content) if content is not None else ""
         except Exception as e:
             print(f"   ⚠️ 工具 {tool_name} 调用失败: {e}，回退到ReAct")
+            self._mcp_manager.record_request(success=False)
             return ""
 
     # ============ ReAct 搜索节点 (内部循环) ============
@@ -334,7 +325,8 @@ class LangGraphTripPlanner:
         class SubState(TypedDict):
             messages: Annotated[List[BaseMessage], add_messages]
 
-        llm_with_tools = self.llm.bind_tools(self.tools) if self.tools else self.llm
+        tools = self._mcp_manager.get_all_tools()
+        llm_with_tools = self.llm.bind_tools(tools) if tools else self.llm
 
         def agent_node(state: SubState) -> dict:
             response = llm_with_tools.invoke(
@@ -345,8 +337,8 @@ class LangGraphTripPlanner:
         workflow = StateGraph(SubState)
         workflow.add_node("agent", agent_node)
 
-        if self.tools:
-            workflow.add_node("tools", ToolNode(self.tools))
+        if tools:
+            workflow.add_node("tools", ToolNode(tools))
             workflow.add_edge(START, "agent")
             workflow.add_conditional_edges(
                 "agent",
@@ -667,7 +659,8 @@ class LangGraphTripPlanner:
             query += f"\n行程上下文: {context}"
 
         try:
-            llm_with_tools = self.llm.bind_tools(self.tools) if self.tools else self.llm
+            tools = self._mcp_manager.get_all_tools()
+            llm_with_tools = self.llm.bind_tools(tools) if tools else self.llm
             messages = [SystemMessage(content=system), HumanMessage(content=query)]
 
             # ReAct循环: 搜索直到满意
@@ -678,7 +671,7 @@ class LangGraphTripPlanner:
 
                 if hasattr(response, 'tool_calls') and response.tool_calls:
                     for tc in response.tool_calls:
-                        tool = next((t for t in self.tools if t.name == tc["name"]), None)
+                        tool = next((t for t in tools if t.name == tc["name"]), None)
                         if tool:
                             result = await tool.ainvoke(tc["args"])
                             messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
@@ -699,13 +692,14 @@ class LangGraphTripPlanner:
         query = f"请搜索{city}的'{keyword}'，返回匹配结果。格式: [{{\"name\":\"名称\",\"address\":\"地址\",\"location\":{{\"longitude\":x,\"latitude\":y}},\"type\":\"景点或餐厅\"}}]"
         messages = [SystemMessage(content="搜索POI，返回JSON数组"), HumanMessage(content=query)]
 
-        llm_with_tools = self.llm.bind_tools(self.tools) if self.tools else self.llm
+        tools = self._mcp_manager.get_all_tools()
+        llm_with_tools = self.llm.bind_tools(tools) if tools else self.llm
         for _ in range(3):
             resp = await llm_with_tools.ainvoke(messages)
             messages.append(resp)
             if hasattr(resp, 'tool_calls') and resp.tool_calls:
                 for tc in resp.tool_calls:
-                    tool = next((t for t in self.tools if t.name == tc["name"]), None)
+                    tool = next((t for t in tools if t.name == tc["name"]), None)
                     if tool:
                         result = await tool.ainvoke(tc["args"])
                         messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))

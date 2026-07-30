@@ -51,9 +51,26 @@ async def startup_event():
         print("\n请检查.env文件并确保所有必要的配置项都已设置")
         raise
     
+    # P5: 预初始化 MCP 连接
+    print("\n" + "-"*60)
+    print("🔌 正在预初始化 MCP 连接...")
+    try:
+        from ..services.mcp_manager import get_mcp_manager
+        mcp_manager = get_mcp_manager()
+        success = await mcp_manager.initialize()
+        if success:
+            status = mcp_manager.get_status()
+            print(f"✅ MCP 预初始化成功: {status['tools_count']} 个工具就绪")
+        else:
+            print("⚠️ MCP 预初始化失败，将在首次请求时重试")
+    except Exception as e:
+        print(f"⚠️ MCP 预初始化异常: {e}")
+        print("   将在首次请求时重试")
+    
     print("\n" + "="*60)
     print("📚 API文档: http://localhost:8000/docs")
     print("📖 ReDoc文档: http://localhost:8000/redoc")
+    print("🔌 MCP状态: http://localhost:8000/api/mcp/status")
     print("="*60 + "\n")
 
 

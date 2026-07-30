@@ -190,6 +190,41 @@ async def health_check():
         )
 
 
+@router.get(
+    "/mcp/status",
+    summary="MCP连接状态",
+    description="获取MCP连接管理器的状态信息 (P5优化)"
+)
+async def mcp_status():
+    """获取 MCP 连接状态 (P5: MCP 连接优化)"""
+    from ...services.mcp_manager import get_mcp_manager
+    manager = get_mcp_manager()
+    
+    return {
+        "status": "success",
+        "data": manager.get_status()
+    }
+
+
+@router.post(
+    "/mcp/reconnect",
+    summary="MCP重新连接",
+    description="强制重新建立MCP连接 (P5优化)"
+)
+async def mcp_reconnect():
+    """强制重新建立 MCP 连接 (P5: MCP 连接优化)"""
+    from ...services.mcp_manager import get_mcp_manager
+    manager = get_mcp_manager()
+    
+    success = await manager.ensure_connected()
+    
+    return {
+        "status": "success" if success else "error",
+        "message": "MCP 重连成功" if success else "MCP 重连失败",
+        "data": manager.get_status()
+    }
+
+
 class ExtractUrlRequest(BaseModel):
     """URL提取请求"""
     url: str = Field(..., description="小红书或其他网页URL")
