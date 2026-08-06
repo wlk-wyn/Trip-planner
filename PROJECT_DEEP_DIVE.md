@@ -9,7 +9,7 @@
 1. [项目定位与设计出发点](#1-项目定位与设计出发点)
 2. [核心功能全景](#2-核心功能全景)
 3. [技术架构深潜](#3-技术架构深潜)
-4. [LangGraph vs HelloAgents 双引擎](#4-langgraph-vs-helloagents-双引擎)
+4. [从 HelloAgents 迁移到 LangGraph](#4-从-helloagents-迁移到-langgraph)
 5. [ReAct 模式详解](#5-react-模式详解)
 6. [MCP 协议集成](#6-mcp-协议集成)
 7. [LLM 输出解析的鲁棒性设计](#7-llm-输出解析的鲁棒性设计)
@@ -146,7 +146,7 @@ RAG:  用户问题 → 向量检索文档 → 拼接文档到prompt → LLM回�
 
 ---
 
-## 4. LangGraph vs HelloAgents 双引擎
+## 4. 从 HelloAgents 迁移到 LangGraph
 
 ### 为什么从 HelloAgents 迁移到 LangGraph？
 
@@ -159,18 +159,7 @@ RAG:  用户问题 → 向量检索文档 → 拼接文档到prompt → LLM回�
 | 状态管理 | 无，手动传参 | `TypedDict` 在节点间自动流转 |
 | 可观测性 | 有限 | LangSmith/LangFuse 深度集成 |
 
-### 双引擎切换
-
-通过环境变量 `PLANNER_ENGINE=langgraph|helloagents` 一键切换，API 接口不变，前端零改动。
-
-```python
-if PLANNER_ENGINE == "langgraph":
-    planner = get_langgraph_planner()
-    trip_plan = await planner.plan_trip_async(request)
-else:
-    agent = get_trip_planner_agent()
-    trip_plan = agent.plan_trip(request)
-```
+迁移后 API 接口不变，前端零改动，且彻底移除了 HelloAgents 依赖（解决 openai 版本冲突）。
 
 ### 知识点：StateGraph 是什么？
 
@@ -650,9 +639,8 @@ http://localhost:8000/docs  # API文档
 
 | 文件 | 作用 |
 |------|------|
-| `backend/app/agents/langgraph_planner.py` | LangGraph 引擎（核心 ~650行） |
-| `backend/app/agents/trip_planner_agent.py` | HelloAgents 引擎（旧，保留作回退） |
-| `backend/app/api/routes/trip.py` | 主 API 路由（规划、备选、URL提取、OCR、POI搜索、路线优化） |
+| `backend/app/agents/langgraph_planner.py` | LangGraph 引擎（核心） |
+| `backend/app/api/routes/trip.py` | 主 API 路由（规划、SSE流式、URL提取、OCR） |
 | `backend/app/services/image_service.py` | Pexels 图片搜索服务 |
 | `backend/app/models/schemas.py` | Pydantic 数据模型 |
 | `frontend/src/views/Home.vue` | 首页（表单 + 参考来源） |

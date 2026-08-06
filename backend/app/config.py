@@ -1,19 +1,12 @@
 """配置管理模块"""
 
 import os
-from pathlib import Path
 from typing import List
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 # 加载环境变量
-# 首先尝试加载当前目录的.env
 load_dotenv()
-
-# 然后尝试加载HelloAgents的.env(如果存在)
-helloagents_env = Path(__file__).parent.parent.parent.parent / "HelloAgents" / ".env"
-if helloagents_env.exists():
-    load_dotenv(helloagents_env, override=False)  # 不覆盖已有的环境变量
 
 
 class Settings(BaseSettings):
@@ -38,7 +31,7 @@ class Settings(BaseSettings):
     unsplash_access_key: str = ""
     unsplash_secret_key: str = ""
 
-    # LLM配置 (从环境变量读取,由HelloAgents管理)
+    # LLM配置 (从环境变量读取)
     openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"
     openai_model: str = "gpt-4"
@@ -74,7 +67,7 @@ def validate_config():
     if not settings.amap_api_key:
         errors.append("AMAP_API_KEY未配置")
 
-    # HelloAgentsLLM会自动从LLM_API_KEY读取,不强制要求OPENAI_API_KEY
+    # LLM API Key 可通过 LLM_API_KEY 或 OPENAI_API_KEY 配置
     llm_api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not llm_api_key:
         warnings.append("LLM_API_KEY或OPENAI_API_KEY未配置,LLM功能可能无法使用")

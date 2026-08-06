@@ -17,12 +17,11 @@ from ...models.schemas import (
     TripPlanResponse,
     ErrorResponse
 )
-from ...agents.trip_planner_agent import get_trip_planner_agent
 from ...agents.langgraph_planner import get_langgraph_planner
 
 router = APIRouter(prefix="/trip", tags=["旅行规划"])
 
-# 选择规划引擎: "langgraph" 或 "helloagents"
+# 规划引擎: 使用 LangGraph
 PLANNER_ENGINE = os.getenv("PLANNER_ENGINE", "langgraph")
 
 
@@ -50,14 +49,9 @@ async def plan_trip(request: TripRequest):
         print(f"   天数: {request.travel_days}")
         print(f"{'='*60}\n")
 
-        if PLANNER_ENGINE == "langgraph":
-            print("🔄 使用 LangGraph 引擎...")
-            planner = get_langgraph_planner()
-            trip_plan = await planner.plan_trip_async(request)
-        else:
-            print("🔄 使用 HelloAgents 引擎...")
-            agent = get_trip_planner_agent()
-            trip_plan = agent.plan_trip(request)
+        print("🔄 使用 LangGraph 引擎...")
+        planner = get_langgraph_planner()
+        trip_plan = await planner.plan_trip_async(request)
 
         print("✅ 旅行计划生成成功,准备返回响应\n")
 
@@ -174,14 +168,13 @@ async def plan_trip_stream(request: TripRequest) -> EventSourceResponse:
 async def health_check():
     """健康检查"""
     try:
-        # 检查Agent是否可用
-        agent = get_trip_planner_agent()
+        from ...services.mcp_manager import get_mcp_manager
+        manager = get_mcp_manager()
 
         return {
             "status": "healthy",
             "service": "trip-planner",
-            "agent_name": agent.agent.name,
-            "tools_count": len(agent.agent.list_tools())
+            "mcp_tools_count": manager.get_tools_count()
         }
     except Exception as e:
         raise HTTPException(
@@ -510,20 +503,12 @@ async def get_alternatives(request: AlternativesRequest):
         备选项列表
     """
     try:
-        if PLANNER_ENGINE == "langgraph":
-            planner = get_langgraph_planner()
-            alternatives = await planner.get_alternatives_async(
-                city=request.city, day_index=request.day_index,
-                replace_type=request.replace_type, current_name=request.current_name,
-                current_category=request.current_category, context=request.context
-            )
-        else:
-            agent = get_trip_planner_agent()
-            alternatives = agent.get_alternatives(
-                city=request.city, day_index=request.day_index,
-                replace_type=request.replace_type, current_name=request.current_name,
-                current_category=request.current_category, context=request.context
-            )
+        planner = get_langgraph_planner()
+        alternatives = await planner.get_alternatives_async(
+            city=request.city, day_index=request.day_index,
+            replace_type=request.replace_type, current_name=request.current_name,
+            current_category=request.current_category, context=request.context
+        )
         return {
             "success": True,
             "message": f"找到{len(alternatives)}个备选",

@@ -274,19 +274,7 @@ workflow.add_edge("tools", "agent")  # 工具结果返回 agent 继续推理
 | `/api/map/route` | POST | — | 路线规划 |
 | `/health` | GET | — | 全局健康检查 |
 
-### 4.2 双引擎切换
-
-通过 `backend/.env` 中的 `PLANNER_ENGINE` 控制：
-
-```python
-# langgraph (默认) — 使用 LangGraph ReAct 引擎
-PLANNER_ENGINE=langgraph
-
-# helloagents (回退) — 使用 SimpleAgent 顺序流水线
-PLANNER_ENGINE=helloagents
-```
-
-### 4.3 数据模型
+### 4.2 数据模型
 
 核心模型定义在 `backend/app/models/schemas.py`：
 
@@ -369,20 +357,22 @@ Trip-planner/
 ├── backend/
 │   ├── app/
 │   │   ├── agents/
-│   │   │   ├── langgraph_planner.py  ← LangGraph 引擎 (903行, 核心)
-│   │   │   └── trip_planner_agent.py ← HelloAgents 引擎 (666行, 回退)
+│   │   │   └── langgraph_planner.py  ← LangGraph 引擎 (核心)
 │   │   ├── api/
 │   │   │   ├── main.py               ← FastAPI 应用入口
 │   │   │   └── routes/
-│   │   │       ├── trip.py           ← 主路由 (454行, 12个端点)
+│   │   │       ├── trip.py           ← 主路由 (规划/SSE/URL提取/OCR)
 │   │   │       ├── poi.py            ← 图片/POI 路由
 │   │   │       └── map.py            ← 地图服务路由
 │   │   ├── services/
-│   │   │   ├── image_service.py      ← Pexels 图片搜索
-│   │   │   ├── amap_service.py       ← 高德封装 (备用)
-│   │   │   └── llm_service.py        ← LLM 初始化
+│   │   │   ├── amap_service.py       ← 高德地图MCP封装
+│   │   │   ├── mcp_manager.py        ← MCP连接池管理 (P5)
+│   │   │   ├── cache_service.py      ← TTL缓存 (P1)
+│   │   │   ├── image_service.py      ← 图片搜索
+│   │   │   └── unsplash_service.py
 │   │   ├── models/
-│   │   │   └── schemas.py            ← Pydantic 数据模型
+│   │   │   ├── schemas.py            ← Pydantic 数据模型
+│   │   │   └── llm_output.py         ← LLM结构化输出Schema
 │   │   └── config.py                 ← 配置管理
 │   ├── .env                          ← 环境变量 (API Key 等)
 │   └── requirements.txt
@@ -421,7 +411,6 @@ Trip-planner/
 | JSON 解析 | 四级兜底 | LLM 输出极不稳定，必须防御性编程 |
 | 路线优化 | 最近邻贪心 | n≤10 时足够优，O(n²) 性能好 |
 | 公交查询 | 前端 AMap.Transfer | 获取真实线路名，Haversine 兜底 |
-| 双引擎 | 保留 HelloAgents | 环境变量切换，LangGraph 故障可回退 |
 
 ---
 

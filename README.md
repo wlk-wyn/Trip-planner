@@ -31,18 +31,23 @@
 Trip-planner/
 ├── backend/                    # 后端服务
 │   ├── app/
-│   │   ├── agents/            # Agent实现
-│   │   │   └── trip_planner_agent.py
+│   │   ├── agents/            # Agent实现 (LangGraph编排)
+│   │   │   └── langgraph_planner.py
 │   │   ├── api/               # FastAPI路由
 │   │   │   ├── main.py
 │   │   │   └── routes/
 │   │   │       ├── trip.py
+│   │   │       ├── poi.py
 │   │   │       └── map.py
 │   │   ├── services/          # 服务层
-│   │   │   ├── amap_service.py
-│   │   │   └── llm_service.py
+│   │   │   ├── amap_service.py     # 高德地图MCP封装
+│   │   │   ├── mcp_manager.py      # MCP连接池管理
+│   │   │   ├── cache_service.py    # TTL缓存
+│   │   │   ├── image_service.py    # 图片服务
+│   │   │   └── unsplash_service.py
 │   │   ├── models/            # 数据模型
-│   │   │   └── schemas.py
+│   │   │   ├── schemas.py
+│   │   │   └── llm_output.py  # LLM结构化输出Schema
 │   │   └── config.py          # 配置管理
 │   ├── requirements.txt
 │   ├── .env.example
