@@ -1,0 +1,24 @@
+# Render Blueprint 配置 - 后端服务部署
+# 文档: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: trip-planner-backend
+    env: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # 高德地图 Web 服务 API Key
+      - key: AMAP_API_KEY
+        sync: false
+      # LLM 配置 (DeepSeek)
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL_ID
+        sync: false
+      # CORS: 填你的 Cloudflare Pages 前端域名，如 https://trip-planner.pages.dev
+      - key: CORS_ORIGINS
+        sync: false
