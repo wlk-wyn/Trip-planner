@@ -1,5 +1,5 @@
-# HelloAgents框架
-hello-agents[protocols]>=0.2.4,<=0.2.9
+# HelloAgents框架 (固定0.2.9, 旧版本会与langchain-openai的openai版本约束冲突)
+hello-agents[protocols]==0.2.9
 
 # FastAPI和相关依赖
 fastapi>=0.115.0
@@ -23,15 +23,16 @@ loguru>=0.7.0
 # MCP相关
 fastmcp>=2.0.0
 uv>=0.8.0
-langchain-mcp-adapters>=0.2.2
+langchain-mcp-adapters==0.2.2
 
-# LangGraph + LangChain (多智能体编排)
-langgraph>=1.2.2
-langchain-openai>=1.2.2
-langchain-core>=1.4.0
+# LangGraph + LangChain (多智能体编排) - 固定版本避免依赖冲突
+langgraph==1.2.2
+langchain-openai==1.2.2
+langchain-core==1.4.0
+openai==2.38.0
 
 # SSE流式响应
-sse-starlette>=3.4.4
+sse-starlette==3.4.4
 
 # 其他工具
 python-dateutil>=2.8.2
