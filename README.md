@@ -64,20 +64,78 @@ Trip-planner/
 
 - Python 3.10+
 - Node.js 16+
-- 高德地图API密钥 (Web服务API和Web端(JS API))
-- LLM API密钥 (OpenAI/DeepSeek等)
+- 高德地图API密钥 (Web服务API + Web端JS API)
+- LLM API密钥 (DeepSeek/OpenAI等)
 
-### 终端 1：后端 
-cd d:\Desktop\Trip-planner\backend
-venv\Scripts\activate
+### 配置环境变量
+
+```bash
+# 后端：填入 AMAP_API_KEY、LLM_API_KEY、LLM_BASE_URL 等
+cd backend && cp .env.example .env
+
+# 前端：填入 VITE_AMAP_WEB_KEY、VITE_AMAP_WEB_JS_KEY
+cd ../frontend && cp .env.example .env
+```
+
+### 方式一：本地开发（双终端，支持热更新）
+
+适用于开发调试，前后端独立运行、代码改动自动生效。
+
+**终端 1 — 后端：**
+```bash
+cd backend
+venv\Scripts\activate                    # Windows | source venv/bin/activate (Linux/Mac)
+pip install -r requirements.txt          # 首次安装依赖
 uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-###  终端 2：前端 
-cd d:\Desktop\Trip-planner\frontend
+**终端 2 — 前端：**
+```bash
+cd frontend
+npm install
 npm run dev
+```
 
+打开浏览器访问 `http://localhost:5173`
 
-5. 打开浏览器访问 `http://localhost:5173`
+### 方式二：服务器部署（生产环境，无需手动激活）
+
+部署到服务器后**不需要像本地那样分别激活前后端进程**：前端构建为静态文件由 Nginx 托管，后端以常驻服务方式运行，可开机自启、对外提供服务。
+
+**1. 后端 — 常驻服务运行（Linux 推荐 gunicorn）：**
+```bash
+cd backend
+pip install -r requirements.txt
+gunicorn app.api.main:app -w 4 -b 0.0.0.0:8000 --daemon
+# 或配置为 systemd 服务实现开机自启
+```
+
+**2. 前端 — 构建静态文件：**
+```bash
+cd frontend
+npm install && npm run build             # 产物输出至 frontend/dist
+```
+
+**3. Nginx 配置（静态托管 + API 反向代理）：**
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        root /path/to/frontend/dist;
+        try_files $uri $uri/ /index.html;     # Vue Router history 模式
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_buffering off;                  # SSE 流式响应需关闭缓冲
+        proxy_read_timeout 300s;
+    }
+}
+```
+
+部署完成后访问 `http://your-domain.com` 即可使用。
 
 ## 📝 使用指南
 
