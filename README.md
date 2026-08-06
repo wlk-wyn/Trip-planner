@@ -67,12 +67,12 @@ Trip-planner/
 - 高德地图API密钥 (Web服务API和Web端(JS API))
 - LLM API密钥 (OpenAI/DeepSeek等)
 
-# ============ 终端 1：后端 ============
+### 终端 1：后端 
 cd d:\Desktop\Trip-planner\backend
 venv\Scripts\activate
 uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
 
-# ============ 终端 2：前端 ============
+###  终端 2：前端 
 cd d:\Desktop\Trip-planner\frontend
 npm run dev
 
@@ -103,32 +103,6 @@ npm run dev
    - 天气预报
    - 餐饮推荐
 
-## 🔧 核心实现
-
-### HelloAgents Agent集成
-
-```python
-from hello_agents import SimpleAgent, HelloAgentsLLM
-from hello_agents.tools import MCPTool
-
-# 创建高德地图MCP工具
-amap_tool = MCPTool(
-    name="amap",
-    server_command=["uvx", "amap-mcp-server"],
-    env={"AMAP_MAPS_API_KEY": "your_api_key"},
-    auto_expand=True
-)
-
-# 创建旅行规划Agent
-agent = SimpleAgent(
-    name="旅行规划助手",
-    llm=HelloAgentsLLM(),
-    system_prompt="你是一个专业的旅行规划助手..."
-)
-
-# 添加工具
-agent.add_tool(amap_tool)
-```
 
 ### MCP工具调用
 
