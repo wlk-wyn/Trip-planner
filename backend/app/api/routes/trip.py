@@ -140,24 +140,34 @@ async def plan_trip_stream(request: TripRequest) -> EventSourceResponse:
             await progress_queue.put(None)
 
     async def event_generator() -> AsyncIterator[dict]:
-        """SSE事件生成器"""
+        """SSE事件生成器
+
+        P4优化: 添加心跳机制，定期发送ping事件防止连接超时。
+        当真实进度事件长时间未到达时，心跳保活避免前端60秒超时回退。
+        """
         # 启动规划任务
         planning_task = asyncio.create_task(run_planning())
 
         while True:
-            # 从队列获取消息
-            event = await progress_queue.get()
-            
+            try:
+                # 最多等待8秒，超时则发送心跳
+                event = await asyncio.wait_for(progress_queue.get(), timeout=8.0)
+            except asyncio.TimeoutError:
+                # 发送心跳保活，前端可忽略 ping 事件
+                yield {"event": "ping", "data": "{}"}
+                continue
+
             if event is None:
                 # 结束信号
                 break
-                
+
             yield event
 
         # 等待规划任务完成
         await planning_task
 
-    return EventSourceResponse(event_generator())
+    # ping 参数: sse-starlette 每15秒自动发送心跳注释，双重保活
+    return EventSourceResponse(event_generator(), ping=15)
 
 
 @router.get(
