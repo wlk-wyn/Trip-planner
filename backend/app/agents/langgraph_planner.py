@@ -309,23 +309,25 @@ class LangGraphTripPlanner:
 
     # ============ ReAct 搜索节点 (内部循环) ============
 
-    def _make_search_subgraph(self, system_prompt: str, result_key: str):
+    def _make_search_subgraph(self, system_prompt: str, result_key: str, tool_names: list = None):
         """
         创建 ReAct 搜索子图: agent ⇄ tools 循环
         使用 ToolNode + tools_condition 实现标准 ReAct 模式
 
-        ┌─────────┐    has tool_calls    ┌───────┐
-        │  agent  │ ─────────────────→   │ tools │
-        │ (LLM)   │ ←─────────────────   │       │
-        └─────────┘    return result      └───────┘
-             │
-        no tool_calls → 提取结果到 state[result_key]
+        Args:
+            system_prompt: 系统提示词
+            result_key: 结果键名
+            tool_names: 限制可用工具名列表，None 则使用全部工具
         """
         # 子图状态
         class SubState(TypedDict):
             messages: Annotated[List[BaseMessage], add_messages]
 
-        tools = self._mcp_manager.get_all_tools()
+        if tool_names:
+            tools = [t for t in self._mcp_manager.get_all_tools() if t.name in tool_names]
+            print(f"   [轻量ReAct] 仅加载 {len(tools)} 个工具: {tool_names}")
+        else:
+            tools = self._mcp_manager.get_all_tools()
         llm_with_tools = self.llm.bind_tools(tools) if tools else self.llm
 
         async def agent_node(state: SubState) -> dict:
@@ -371,14 +373,14 @@ class LangGraphTripPlanner:
     # ============ 顶层 Graph Nodes ============
 
     async def _attraction_node(self, state: PlannerState) -> dict:
-        print("📍 [Direct] 搜索景点...")
+        print("📍 [轻量ReAct] 搜索景点...")
         await self._ensure_initialized()
 
         preferences = state.get("preferences", [])
         keywords = preferences[0] if preferences else "景点"
         city = state["city"]
 
-        # 缓存检查: 缓存 key 包含城市+偏好+参考模式
+        # 缓存检查
         ref_mode = state.get("reference_mode", "")
         ref_content = state.get("reference_content", "")
         cache_key = f"attractions:{city}:{','.join(preferences)}:{ref_mode}:{ref_content[:100] if ref_content else ''}"
@@ -387,26 +389,29 @@ class LangGraphTripPlanner:
             print(f"   ✅ 景点缓存命中，跳过搜索")
             return {"attractions_info": cached}
 
-        # P2 优化: 直接调用 maps_text_search 工具，省去 LLM 推理环节
-        result = ""
-        tool_output = await self._call_tool_direct("maps_text_search", {
-            "keywords": keywords,
-            "city": city,
-            "citylimit": "true",
-        })
-        if tool_output.strip():
-            print(f"   [Direct] 景点搜索成功")
-            result = f"{city} {keywords}景点搜索结果:\n{tool_output}"
-        else:
-            # 兜底: 直接调用失败，回退到 ReAct 模式
-            print(f"   [ReAct] 直接调用失败，回退ReAct模式...")
-            query = f"请搜索{city}的{keywords}相关景点。对每个景点记录名称、地址、坐标。"
-            if ref_mode in ("strict", "hybrid") and ref_content:
-                names = _extract_place_names(ref_content, city)
-                if names:
-                    query += f"\n请额外搜索以下攻略提到的地点: {', '.join(names[:5])}"
-            subgraph = self._make_search_subgraph(ATTRACTION_SYSTEM, "attractions_info")
-            result = await self._run_react_search(subgraph, query)
+        # 轻量 ReAct: 只给景点相关工具，缩小决策空间
+        ATTRACTION_TOOLS = ["maps_text_search", "maps_around_search", "maps_search_detail"]
+        query = f"请搜索{city}的{keywords}相关景点。对每个景点记录名称、地址、坐标。"
+
+        # 严格/混合模式: 追加攻略中的具体地名
+        if ref_mode in ("strict", "hybrid") and ref_content:
+            names = _extract_place_names(ref_content, city)
+            if names:
+                query += f"\n请额外搜索以下攻略提到的地点: {', '.join(names[:5])}"
+
+        subgraph = self._make_search_subgraph(ATTRACTION_SYSTEM, "attractions_info", ATTRACTION_TOOLS)
+        result = await self._run_react_search(subgraph, query)
+
+        # 兜底: 轻量 ReAct 失败或结果为空，回退直接 API
+        if not result or len(result) < 100:
+            print(f"   [兜底] ReAct结果不足，回退直接API调用...")
+            tool_output = await self._call_tool_direct("maps_text_search", {
+                "keywords": keywords,
+                "city": city,
+                "citylimit": "true",
+            })
+            if tool_output.strip():
+                result = f"{city} {keywords}景点搜索结果:\n{tool_output}"
 
         print(f"   景点搜索完成 ({len(result)} 字符)")
         result = result[:3000]
@@ -441,7 +446,7 @@ class LangGraphTripPlanner:
             # 兜底: 直接调用失败，回退到 ReAct 模式
             print(f"   [ReAct] 直接调用失败，回退ReAct模式...")
             query = f"请查询{city}从{start_date}到{end_date}每天的天气"
-            subgraph = self._make_search_subgraph(WEATHER_SYSTEM, "weather_info")
+            subgraph = self._make_search_subgraph(WEATHER_SYSTEM, "weather_info", ["maps_weather"])
             result = await self._run_react_search(subgraph, query)
 
         print(f"   天气查询完成 ({len(result)} 字符)")
@@ -578,7 +583,7 @@ class LangGraphTripPlanner:
                 query += f"\n优先搜索以下坐标附近的酒店: ({center_lng:.4f}, {center_lat:.4f})，半径{search_radius}米内。"
             if state.get("reference_mode") in ("strict", "hybrid") and state.get("reference_content"):
                 query += f"\n攻略参考: {state['reference_content'][:500]}"
-            subgraph = self._make_search_subgraph(HOTEL_SYSTEM, "hotels_info")
+            subgraph = self._make_search_subgraph(HOTEL_SYSTEM, "hotels_info", ["maps_text_search", "maps_around_search"])
             result = await self._run_react_search(subgraph, query)
 
         print(f"   酒店搜索完成 ({len(result)} 字符) [模式: {search_mode}]")
