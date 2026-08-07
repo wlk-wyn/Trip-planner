@@ -72,7 +72,16 @@ class AmapService:
         try:
             result = await tool.ainvoke(arguments)
             manager.record_request(success=True)
-            # 提取文本内容
+            # MCP 工具可能返回 list / str / ToolMessage
+            if isinstance(result, list):
+                # list[{'type':'text','text':'...'}]
+                parts = []
+                for part in result:
+                    if isinstance(part, dict) and "text" in part:
+                        parts.append(str(part["text"]))
+                    elif isinstance(part, str):
+                        parts.append(part)
+                return "\n".join(parts)
             if isinstance(result, str):
                 return result
             content = getattr(result, "content", str(result))

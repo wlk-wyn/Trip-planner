@@ -281,8 +281,17 @@ class LangGraphTripPlanner:
         try:
             result = await tool.ainvoke(arguments)
             self._mcp_manager.record_request(success=True)
-            # Tool调用结果可能是ToolMessage或str
-            if isinstance(result, ToolMessage):
+            # Tool调用结果可能是 list / ToolMessage / str / BaseMessage
+            if isinstance(result, list):
+                # MCP 工具直接返回 list[{'type':'text','text':'...'}]
+                parts = []
+                for part in result:
+                    if isinstance(part, dict) and "text" in part:
+                        parts.append(str(part["text"]))
+                    elif isinstance(part, str):
+                        parts.append(part)
+                content = "\n".join(parts)
+            elif isinstance(result, ToolMessage):
                 content = result.content
             elif isinstance(result, str):
                 content = result
