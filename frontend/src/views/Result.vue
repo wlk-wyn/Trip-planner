@@ -475,6 +475,9 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import type { TripPlan, Alternative } from '@/types'
 
+// API基址: 本地开发时为空(走Vite代理)，生产环境为后端URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+
 const router = useRouter()
 const tripPlan = ref<TripPlan | null>(null)
 const editMode = ref(false)
@@ -647,7 +650,7 @@ const openAlternatives = async (type: 'attraction' | 'meal', dayIdx: number, ite
   if (day.meals) ctxParts.push(`已安排餐厅: ${day.meals.map((m: any) => m.restaurant || m.name).join('、')}`)
 
   try {
-    const res = await fetch('/api/trip/alternatives', {
+    const res = await fetch(`${API_BASE_URL}/api/trip/alternatives`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -724,7 +727,7 @@ const handleAddSearch = async () => {
   addResults.value = []
   addSearchDone.value = false
   try {
-    const res = await fetch('/api/trip/search-poi', {
+    const res = await fetch(`${API_BASE_URL}/api/trip/search-poi`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ keyword: kw, city: tripPlan.value!.city })
     })
@@ -788,7 +791,7 @@ const handleReoptimize = async (dayIdx: number) => {
   if (points.length < 2) { reoptLoading.value = -1; message.warning('至少需要2个有坐标的点才能优化'); return }
 
   try {
-    const res = await fetch('/api/trip/reoptimize', {
+    const res = await fetch(`${API_BASE_URL}/api/trip/reoptimize`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ day_points: points.map(p => ({ lat: p.lat, lng: p.lng, type: p.type })) })
     })
@@ -908,7 +911,7 @@ const loadAttractionPhotos = async () => {
   tripPlan.value.days.forEach(day => {
     // 景点图片 - 使用相对路径，通过Vite代理
     day.attractions.forEach(attraction => {
-      const promise = fetch(`/api/poi/photo?name=${encodeURIComponent(attraction.name)}&city=${city}`)
+      const promise = fetch(`${API_BASE_URL}/api/poi/photo?name=${encodeURIComponent(attraction.name)}&city=${city}`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.data.photo_url) {
@@ -929,7 +932,7 @@ const loadAttractionPhotos = async () => {
 
       // 策略1: 短餐厅名
       const p1 = restName
-        ? fetch(`/api/poi/photo?name=${encodeURIComponent(restName)}&city=${city}`)
+        ? fetch(`${API_BASE_URL}/api/poi/photo?name=${encodeURIComponent(restName)}&city=${city}`)
             .then(res => res.json()).then(data => {
               if (data.success && data.data?.photo_url) mealPhotos.value[key] = data.data.photo_url
             }).catch(() => {})
@@ -937,7 +940,7 @@ const loadAttractionPhotos = async () => {
 
       // 策略2: 推荐菜
       const p2 = dishName
-        ? fetch(`/api/poi/photo?name=${encodeURIComponent(dishName)}&city=${city}`)
+        ? fetch(`${API_BASE_URL}/api/poi/photo?name=${encodeURIComponent(dishName)}&city=${city}`)
             .then(res => res.json()).then(data => {
               if (data.success && data.data?.photo_url && !mealPhotos.value[key]) mealPhotos.value[key] = data.data.photo_url
             }).catch(() => {})
@@ -945,7 +948,7 @@ const loadAttractionPhotos = async () => {
 
       // 策略3: 通用美食
       const p3 = !mealPhotos.value[key]
-        ? fetch(`/api/poi/photo?name=food&city=${city}`)
+        ? fetch(`${API_BASE_URL}/api/poi/photo?name=food&city=${city}`)
             .then(res => res.json()).then(data => {
               if (data.success && data.data?.photo_url && !mealPhotos.value[key]) mealPhotos.value[key] = data.data.photo_url
             }).catch(() => {})

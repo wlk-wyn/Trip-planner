@@ -321,7 +321,10 @@ class LangGraphTripPlanner:
     def _make_search_subgraph(self, system_prompt: str, result_key: str, tool_names: list = None):
         """
         创建 ReAct 搜索子图: agent ⇄ tools 循环
-        使用 ToolNode + tools_condition 实现标准 ReAct 模式
+
+        P5+ 优化: 用自定义工具执行节点替代 ToolNode，
+        在调用 MCP 工具前规范化参数 (bool→"true"/"false")，
+        解决 LLM 在 ReAct 模式下传 bool 值导致 args_schema 验证失败的问题。
 
         Args:
             system_prompt: 系统提示词
@@ -345,11 +348,69 @@ class LangGraphTripPlanner:
             )
             return {"messages": [response]}
 
+        async def tools_node(state: SubState) -> dict:
+            """自定义工具执行节点: 规范化参数后调用工具
+
+            替代 ToolNode，关键区别是在调用 tool.ainvoke 前
+            用 _normalize_args 把 bool 转成 "true"/"false" 字符串。
+            """
+            from ..services.mcp_manager import _normalize_args
+            messages = state["messages"]
+            last_message = messages[-1]
+            if not hasattr(last_message, "tool_calls") or not last_message.tool_calls:
+                return {"messages": []}
+
+            tool_map = {t.name: t for t in tools}
+            new_messages = []
+            for tc in last_message.tool_calls:
+                tool = tool_map.get(tc["name"])
+                if tool is None:
+                    new_messages.append(ToolMessage(
+                        content=f"工具 {tc['name']} 不存在",
+                        tool_call_id=tc["id"],
+                    ))
+                    continue
+                # 关键: 规范化参数 (bool → "true"/"false")
+                args = _normalize_args(tc.get("args", {}))
+                try:
+                    result = await tool.ainvoke(args)
+                    # 提取文本内容 (兼容 list/str/ToolMessage 等返回类型)
+                    if isinstance(result, list):
+                        parts = []
+                        for part in result:
+                            if isinstance(part, dict) and "text" in part:
+                                parts.append(str(part["text"]))
+                            elif isinstance(part, str):
+                                parts.append(part)
+                        content = "\n".join(parts)
+                    elif isinstance(result, str):
+                        content = result
+                    else:
+                        content = getattr(result, "content", str(result))
+                        if isinstance(content, list):
+                            parts = []
+                            for part in content:
+                                if isinstance(part, dict) and "text" in part:
+                                    parts.append(str(part["text"]))
+                                elif isinstance(part, str):
+                                    parts.append(part)
+                            content = "\n".join(parts)
+                        else:
+                            content = str(content) if content else ""
+                    new_messages.append(ToolMessage(content=content, tool_call_id=tc["id"]))
+                except Exception as e:
+                    print(f"   ⚠️ 工具 {tc['name']} 调用失败: {e}")
+                    new_messages.append(ToolMessage(
+                        content=f"工具调用失败: {e}",
+                        tool_call_id=tc["id"],
+                    ))
+            return {"messages": new_messages}
+
         workflow = StateGraph(SubState)
         workflow.add_node("agent", agent_node)
 
         if tools:
-            workflow.add_node("tools", ToolNode(tools))
+            workflow.add_node("tools", tools_node)
             workflow.add_edge(START, "agent")
             workflow.add_conditional_edges(
                 "agent",
