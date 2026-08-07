@@ -328,8 +328,8 @@ class LangGraphTripPlanner:
         tools = self._mcp_manager.get_all_tools()
         llm_with_tools = self.llm.bind_tools(tools) if tools else self.llm
 
-        def agent_node(state: SubState) -> dict:
-            response = llm_with_tools.invoke(
+        async def agent_node(state: SubState) -> dict:
+            response = await llm_with_tools.ainvoke(
                 [SystemMessage(content=system_prompt)] + state["messages"]
             )
             return {"messages": [response]}
@@ -354,7 +354,10 @@ class LangGraphTripPlanner:
     async def _run_react_search(self, subgraph, initial_message: str) -> str:
         """运行 ReAct 子图，提取最终文本结果"""
         try:
-            result = await subgraph.ainvoke({"messages": [HumanMessage(content=initial_message)]})
+            result = await subgraph.ainvoke(
+                {"messages": [HumanMessage(content=initial_message)]},
+                {"recursion_limit": 12}
+            )
             messages = result.get("messages", [])
             # 提取最后一条 AI 消息的内容作为结果
             for msg in reversed(messages):
@@ -884,7 +887,7 @@ class LangGraphTripPlanner:
         }
 
         try:
-            result = await graph.ainvoke(state)
+            result = await graph.ainvoke(state, {"recursion_limit": 30})
             trip_plan_json = result.get("trip_plan_json", "")
             
             # P3: 优先尝试使用结构化输出转换
