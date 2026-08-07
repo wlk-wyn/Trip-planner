@@ -592,12 +592,12 @@ class LangGraphTripPlanner:
         return {"hotels_info": result}
 
     async def _planner_node(self, state: PlannerState) -> dict:
-        """生成行程计划 (P3: 使用结构化输出)
+        """生成行程计划 (P3: 先JSON后结构化)
 
-        使用 with_structured_output 让LLM直接返回符合Schema的结构化数据，
-        避免JSON格式不稳定导致的解析问题。
+        优先生成纯JSON(速度更快)，验证失败时回退到结构化输出。
+        使用 asyncio.to_thread 在生成期间发送心跳进度，防止SSE超时。
         """
-        print("📋 生成行程计划 (P3结构化输出)...")
+        print("📋 生成行程计划 (P3 JSON优先)...")
 
         is_strict = state.get("reference_mode") == "strict"
         is_hybrid = state.get("reference_mode") == "hybrid"
@@ -631,30 +631,61 @@ class LangGraphTripPlanner:
             else:
                 query += f"\n💡 灵感模式: 参考风格,不直接用具体地点\n{ref}"
 
-        # P3: 使用结构化输出
+        # P3: 优先生成纯JSON(更快)，结构化输出作为兜底
+        import asyncio
         try:
-            # 尝试使用结构化输出
-            structured_llm = self.llm.with_structured_output(LLMTripPlan)
-            response = await structured_llm.ainvoke([
-                SystemMessage(content=PLANNER_SYSTEM),
-                HumanMessage(content=query)
-            ])
-            print(f"   ✅ 结构化输出生成完成: {len(response.days)}天")
-            
-            # 将结构化对象序列化为JSON字符串，保持向后兼容
-            import json
-            trip_plan_json = response.model_dump_json(indent=2)
-            return {"trip_plan_json": trip_plan_json}
-            
-        except Exception as e:
-            print(f"   ⚠️ 结构化输出失败({e})，回退到普通输出...")
-            # 回退方案: 使用普通输出
+            # 启动心跳任务，在LLM生成期间定期发送进度
+            heartbeat_stop = asyncio.Event()
+
+            async def heartbeat():
+                while not heartbeat_stop.is_set():
+                    await asyncio.sleep(10)
+                    print("   💓 LLM生成中...")
+
+            heartbeat_task = asyncio.create_task(heartbeat())
+
+            # 先用普通JSON生成(速度更快)
             response = await self.llm.ainvoke([
                 SystemMessage(content=PLANNER_SYSTEM),
                 HumanMessage(content=query)
             ])
-            print(f"   行程生成完成 (回退模式, {len(response.content)} 字符)")
-            return {"trip_plan_json": response.content}
+            heartbeat_stop.set()
+            await heartbeat_task
+            raw_content = response.content if isinstance(response.content, str) else str(response.content)
+            print(f"   ✅ JSON生成完成 ({len(raw_content)} 字符)")
+
+            # 尝试验证是否符合LLMTripPlan结构
+            try:
+                import json
+                raw_data = json.loads(raw_content)
+                llm_output = LLMTripPlan(**raw_data)
+                trip_plan_json = llm_output.model_dump_json(indent=2)
+                print(f"   ✅ JSON结构验证通过: {len(llm_output.days)}天")
+                return {"trip_plan_json": trip_plan_json}
+            except Exception as parse_err:
+                print(f"   ⚠️ JSON解析/验证失败({parse_err})，回退到结构化输出...")
+                # 回退: 使用结构化输出
+                heartbeat_stop2 = asyncio.Event()
+                async def heartbeat2():
+                    while not heartbeat_stop2.is_set():
+                        await asyncio.sleep(10)
+                        print("   💓 结构化输出生成中...")
+                heartbeat2_task = asyncio.create_task(heartbeat2())
+
+                structured_llm = self.llm.with_structured_output(LLMTripPlan)
+                response2 = await structured_llm.ainvoke([
+                    SystemMessage(content=PLANNER_SYSTEM),
+                    HumanMessage(content=query)
+                ])
+                heartbeat_stop2.set()
+                await heartbeat2_task
+                print(f"   ✅ 结构化输出生成完成: {len(response2.days)}天")
+                trip_plan_json = response2.model_dump_json(indent=2)
+                return {"trip_plan_json": trip_plan_json}
+
+        except Exception as e:
+            print(f"   ❌ 行程生成失败: {e}")
+            raise
 
     # ============ 主 Graph ============
 

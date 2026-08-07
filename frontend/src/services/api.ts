@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000, // 2分钟超时
+  timeout: 300000, // 5分钟超时
   headers: {
     'Content-Type': 'application/json'
   }
@@ -61,14 +61,14 @@ export function generateTripPlanStream(
   return new Promise((resolve, reject) => {
     const url = `${API_BASE_URL}/api/trip/plan/stream`
     
-    // 超时机制: 如果10秒内没有收到进度更新，就认为SSE失败
+    // 超时机制: 如果60秒内没有收到进度更新，就认为SSE失败
     let lastProgressTime = Date.now()
     const timeoutTimer = setInterval(() => {
-      if (Date.now() - lastProgressTime > 10000) {
+      if (Date.now() - lastProgressTime > 60000) {
         clearInterval(timeoutTimer)
         reject(new Error('SSE流式响应超时'))
       }
-    }, 2000)
+    }, 5000)
 
     // 使用fetch + ReadableStream实现SSE
     async function fetchStream() {
