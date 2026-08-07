@@ -208,13 +208,58 @@ async def mcp_reconnect():
     """强制重新建立 MCP 连接 (P5: MCP 连接优化)"""
     from ...services.mcp_manager import get_mcp_manager
     manager = get_mcp_manager()
-    
+
     success = await manager.ensure_connected()
-    
+
     return {
         "status": "success" if success else "error",
         "message": "MCP 重连成功" if success else "MCP 重连失败",
         "data": manager.get_status()
+    }
+
+
+@router.get(
+    "/debug-search",
+    summary="调试: 搜索景点原始结果",
+    description="直接调用MCP搜索工具，返回原始结果（调试用）"
+)
+async def debug_search(city: str = "北京", keywords: str = "景点"):
+    """调试接口: 直接调用 MCP 工具，返回原始结果"""
+    from ...services.mcp_manager import get_mcp_manager
+    manager = get_mcp_manager()
+    await manager.ensure_connected()
+
+    tool = manager.get_tool("maps_text_search")
+    if tool is None:
+        return {"error": "未找到 maps_text_search 工具", "tools_count": manager.get_tools_count()}
+
+    result = await tool.ainvoke({
+        "keywords": keywords,
+        "city": city,
+        "citylimit": "true"
+    })
+
+    # 提取文本
+    if isinstance(result, str):
+        content = result
+    else:
+        content = getattr(result, "content", str(result))
+        if isinstance(content, list):
+            parts = []
+            for part in content:
+                if isinstance(part, dict) and "text" in part:
+                    parts.append(str(part["text"]))
+                elif isinstance(part, str):
+                    parts.append(part)
+            content = "\n".join(parts)
+
+    return {
+        "city": city,
+        "keywords": keywords,
+        "result_type": type(result).__name__,
+        "content_length": len(content) if content else 0,
+        "content_preview": content[:2000] if content else "(空)",
+        "tools_available": [t.name for t in manager.get_all_tools()][:20]
     }
 
 
