@@ -9,23 +9,21 @@
 
 import asyncio
 import time
-import functools
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_core.tools import BaseTool
+from langchain_core.tools import BaseTool, StructuredTool
+from pydantic import model_validator
 
 from ..config import get_settings
 
 
 def _normalize_args(args: Any) -> Any:
-    """规范化工具调用参数
+    """规范化工具调用参数 (用于 _call_tool_direct 直接调用)
 
-    高德 MCP 工具通常要求:
-    - 布尔字段 (如 citylimit): 传 "true"/"false" 字符串，而非 bool
-    - 数值字段在需要时也保持原样
-    该函数递归处理 dict/list，确保 bool 统一转成小写字符串
+    高德 MCP 工具的布尔字段 (如 citylimit) 要求传 "true"/"false" 字符串，
+    而非 Python bool。该函数递归处理 dict/list，确保 bool 统一转成小写字符串。
     """
     if isinstance(args, bool):
         return "true" if args else "false"
@@ -36,48 +34,43 @@ def _normalize_args(args: Any) -> Any:
     return args
 
 
-class _NormalizedToolWrapper(BaseTool):
-    """工具包装器: 在调用前规范化参数类型 (bool→"true"/"false")
+def _patch_tool_args_schema(tool: BaseTool) -> BaseTool:
+    """修改工具的 args_schema，添加 bool→str 自动 coercion
 
-    继承 BaseTool 以确保与 llm.bind_tools / ToolNode 完全兼容。
-    通过 _run / _arun 钩子在调用底层工具前统一参数类型。
+    问题: 高德 MCP 工具的 args_schema 要求 citylimit 等字段为 str 类型，
+    但 LLM 在 ReAct 模式下会传 bool True/False，导致 Pydantic 验证失败。
+
+    方案: 创建 args_schema 的子类，添加 model_validator(mode='before')，
+    在 Pydantic 验证之前把所有 bool 值转成 "true"/"false" 字符串。
+    这样无论谁调用工具 (ToolNode / LLM / 直接调用)，参数都会被自动转换。
+
+    关键: 必须在 args_schema 层面处理，因为 BaseTool.ainvoke 在调用 _arun
+    之前就会用 args_schema 做输入验证，bool 在验证阶段就会被拒绝。
     """
+    original_schema = getattr(tool, "args_schema", None)
+    if original_schema is None or not hasattr(original_schema, "model_validate"):
+        return tool
 
-    _inner: BaseTool
+    try:
+        class _CoercedSchema(original_schema):
+            @model_validator(mode="before")
+            @classmethod
+            def _coerce_bool_to_str(cls, data):
+                if isinstance(data, dict):
+                    for k, v in list(data.items()):
+                        if isinstance(v, bool):
+                            data[k] = "true" if v else "false"
+                return data
 
-    def __init__(self, tool: BaseTool):
-        # 使用 model_construct 避免重新触发 Pydantic 校验，直接复制原工具的核心字段
-        name = getattr(tool, "name", str(tool))
-        description = getattr(tool, "description", "")
-        args_schema = getattr(tool, "args_schema", None)
-        metadata = getattr(tool, "metadata", {})
-        tags = getattr(tool, "tags", [])
+        _CoercedSchema.__name__ = original_schema.__name__
+        _CoercedSchema.__qualname__ = original_schema.__qualname__
 
-        super().__init__(
-            name=name,
-            description=description,
-            args_schema=args_schema,
-            metadata=metadata,
-            tags=tags,
-        )
-        object.__setattr__(self, "_inner", tool)
-
-    def _run(self, *args: Any, **kwargs: Any) -> Any:
-        if args:
-            args = tuple(_normalize_args(a) for a in args)
-        if kwargs:
-            kwargs = _normalize_args(kwargs)
-        return self._inner.invoke(*args, **kwargs)
-
-    async def _arun(self, *args: Any, **kwargs: Any) -> Any:
-        if args:
-            args = tuple(_normalize_args(a) for a in args)
-        if kwargs:
-            kwargs = _normalize_args(kwargs)
-        return await self._inner.ainvoke(*args, **kwargs)
-
-    def __repr__(self):
-        return f"_NormalizedToolWrapper({self._inner!r})"
+        # StructuredTool 的 args_schema 是实例属性，可以直接修改
+        object.__setattr__(tool, "args_schema", _CoercedSchema)
+        return tool
+    except Exception as e:
+        print(f"⚠️ [MCP] 无法为工具 {getattr(tool, 'name', '?')} 添加参数 coercion: {e}")
+        return tool
 
 
 class MCPConnectionManager:
@@ -137,8 +130,9 @@ class MCPConnectionManager:
                 })
                 
                 raw_tools = await self._client.get_tools()
-                # P5+: 包装工具，自动规范化参数（bool→"true"/"false"等）
-                self._tools = [_NormalizedToolWrapper(t) for t in raw_tools]
+                # P5+: 为每个工具的 args_schema 添加 bool→str coercion，
+                # 修复 LLM 在 ReAct 模式下传 bool 值导致的验证错误
+                self._tools = [_patch_tool_args_schema(t) for t in raw_tools]
                 self._tool_index = {getattr(t, "name", str(t)): t for t in self._tools}
                 
                 self._initialized = True
@@ -214,12 +208,12 @@ class MCPConnectionManager:
         # 重新初始化
         return await self.initialize()
 
-    def get_tool(self, name: str) -> Optional[_NormalizedToolWrapper]:
-        """按名称获取工具 (已包装参数规范化)"""
+    def get_tool(self, name: str) -> Optional[BaseTool]:
+        """按名称获取工具 (已添加参数 coercion)"""
         return self._tool_index.get(name)
 
-    def get_all_tools(self) -> List[_NormalizedToolWrapper]:
-        """获取所有工具 (已包装参数规范化)"""
+    def get_all_tools(self) -> List[BaseTool]:
+        """获取所有工具 (已添加参数 coercion)"""
         return self._tools.copy()
 
     def get_tools_count(self) -> int:
