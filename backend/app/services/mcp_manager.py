@@ -9,6 +9,7 @@
 
 import asyncio
 import time
+import functools
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
@@ -16,6 +17,67 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.tools import BaseTool
 
 from ..config import get_settings
+
+
+def _normalize_args(args: Any) -> Any:
+    """规范化工具调用参数
+
+    高德 MCP 工具通常要求:
+    - 布尔字段 (如 citylimit): 传 "true"/"false" 字符串，而非 bool
+    - 数值字段在需要时也保持原样
+    该函数递归处理 dict/list，确保 bool 统一转成小写字符串
+    """
+    if isinstance(args, bool):
+        return "true" if args else "false"
+    if isinstance(args, dict):
+        return {k: _normalize_args(v) for k, v in args.items()}
+    if isinstance(args, list):
+        return [_normalize_args(v) for v in args]
+    return args
+
+
+class _NormalizedToolWrapper(BaseTool):
+    """工具包装器: 在调用前规范化参数类型 (bool→"true"/"false")
+
+    继承 BaseTool 以确保与 llm.bind_tools / ToolNode 完全兼容。
+    通过 _run / _arun 钩子在调用底层工具前统一参数类型。
+    """
+
+    _inner: BaseTool
+
+    def __init__(self, tool: BaseTool):
+        # 使用 model_construct 避免重新触发 Pydantic 校验，直接复制原工具的核心字段
+        name = getattr(tool, "name", str(tool))
+        description = getattr(tool, "description", "")
+        args_schema = getattr(tool, "args_schema", None)
+        metadata = getattr(tool, "metadata", {})
+        tags = getattr(tool, "tags", [])
+
+        super().__init__(
+            name=name,
+            description=description,
+            args_schema=args_schema,
+            metadata=metadata,
+            tags=tags,
+        )
+        object.__setattr__(self, "_inner", tool)
+
+    def _run(self, *args: Any, **kwargs: Any) -> Any:
+        if args:
+            args = tuple(_normalize_args(a) for a in args)
+        if kwargs:
+            kwargs = _normalize_args(kwargs)
+        return self._inner.invoke(*args, **kwargs)
+
+    async def _arun(self, *args: Any, **kwargs: Any) -> Any:
+        if args:
+            args = tuple(_normalize_args(a) for a in args)
+        if kwargs:
+            kwargs = _normalize_args(kwargs)
+        return await self._inner.ainvoke(*args, **kwargs)
+
+    def __repr__(self):
+        return f"_NormalizedToolWrapper({self._inner!r})"
 
 
 class MCPConnectionManager:
@@ -74,7 +136,9 @@ class MCPConnectionManager:
                     }
                 })
                 
-                self._tools = await self._client.get_tools()
+                raw_tools = await self._client.get_tools()
+                # P5+: 包装工具，自动规范化参数（bool→"true"/"false"等）
+                self._tools = [_NormalizedToolWrapper(t) for t in raw_tools]
                 self._tool_index = {getattr(t, "name", str(t)): t for t in self._tools}
                 
                 self._initialized = True
@@ -137,25 +201,25 @@ class MCPConnectionManager:
     async def _reconnect(self) -> bool:
         """重新建立 MCP 连接"""
         print("🔄 [MCP Manager] 正在重新连接 MCP...")
-        
+
         # 清理旧连接
         self._client = None
         self._tools = []
         self._tool_index = {}
         self._initialized = False
-        
+
         # 等待短暂延迟
         await asyncio.sleep(self._retry_delay)
-        
+
         # 重新初始化
         return await self.initialize()
 
-    def get_tool(self, name: str) -> Optional[BaseTool]:
-        """按名称获取工具"""
+    def get_tool(self, name: str) -> Optional[_NormalizedToolWrapper]:
+        """按名称获取工具 (已包装参数规范化)"""
         return self._tool_index.get(name)
 
-    def get_all_tools(self) -> List[BaseTool]:
-        """获取所有工具"""
+    def get_all_tools(self) -> List[_NormalizedToolWrapper]:
+        """获取所有工具 (已包装参数规范化)"""
         return self._tools.copy()
 
     def get_tools_count(self) -> int:
