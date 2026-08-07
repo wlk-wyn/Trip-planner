@@ -354,20 +354,54 @@ class LangGraphTripPlanner:
         return workflow.compile()
 
     async def _run_react_search(self, subgraph, initial_message: str) -> str:
-        """运行 ReAct 子图，提取最终文本结果"""
+        """运行 ReAct 子图，提取最终文本结果
+
+        结果提取优先级:
+        1. 最后一条不含 tool_calls 的 AIMessage.content（LLM 总结）
+        2. 所有 ToolMessage.content 拼接（工具返回的原始数据）
+        3. 最后一条消息的 content
+        """
         try:
             result = await subgraph.ainvoke(
                 {"messages": [HumanMessage(content=initial_message)]},
                 {"recursion_limit": 12}
             )
             messages = result.get("messages", [])
-            # 提取最后一条 AI 消息的内容作为结果
+            print(f"   [调试] ReAct消息数: {len(messages)}")
+            for i, msg in enumerate(messages):
+                msg_type = type(msg).__name__
+                has_tc = bool(getattr(msg, "tool_calls", None))
+                content_preview = str(getattr(msg, "content", ""))[:150]
+                print(f"      msg[{i}] {msg_type} tool_calls={has_tc} content={content_preview}")
+
+            # 1. 优先: 最后一条不含 tool_calls 且有 content 的 AIMessage
             for msg in reversed(messages):
-                if isinstance(msg, AIMessage) and msg.content:
+                if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", None):
+                    print(f"   [调试] 提取AIMessage总结, 长度: {len(msg.content)}")
                     return msg.content
-            return str(messages[-1].content) if messages else ""
+
+            # 2. 兜底: 拼接所有 ToolMessage 的内容（工具返回的原始数据）
+            tool_contents = []
+            for msg in messages:
+                if isinstance(msg, ToolMessage) and msg.content:
+                    content = str(msg.content)
+                    if content and content != "[]":
+                        tool_contents.append(content)
+            if tool_contents:
+                combined = "\n".join(tool_contents)
+                print(f"   [调试] 无AIMessage总结，使用ToolMessage拼接, 长度: {len(combined)}")
+                return combined
+
+            # 3. 最后兜底: 最后一条消息
+            if messages:
+                last_content = str(getattr(messages[-1], "content", ""))
+                print(f"   [调试] 使用最后一条消息, 长度: {len(last_content)}")
+                return last_content
+            return ""
         except Exception as e:
-            print(f"   ReAct 搜索异常: {e}")
+            import traceback
+            print(f"   ❌ ReAct 搜索异常: {e}")
+            traceback.print_exc()
             return ""
 
     # ============ 顶层 Graph Nodes ============
