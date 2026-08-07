@@ -371,7 +371,7 @@ class LangGraphTripPlanner:
     # ============ 顶层 Graph Nodes ============
 
     async def _attraction_node(self, state: PlannerState) -> dict:
-        print("📍 [ReAct] 搜索景点...")
+        print("📍 [Direct] 搜索景点...")
         await self._ensure_initialized()
 
         preferences = state.get("preferences", [])
@@ -387,16 +387,27 @@ class LangGraphTripPlanner:
             print(f"   ✅ 景点缓存命中，跳过搜索")
             return {"attractions_info": cached}
 
-        query = f"请搜索{city}的{keywords}相关景点。对每个景点记录名称、地址、坐标。"
+        # P2 优化: 直接调用 maps_text_search 工具，省去 LLM 推理环节
+        result = ""
+        tool_output = await self._call_tool_direct("maps_text_search", {
+            "keywords": keywords,
+            "city": city,
+            "citylimit": "true",
+        })
+        if tool_output.strip():
+            print(f"   [Direct] 景点搜索成功")
+            result = f"{city} {keywords}景点搜索结果:\n{tool_output}"
+        else:
+            # 兜底: 直接调用失败，回退到 ReAct 模式
+            print(f"   [ReAct] 直接调用失败，回退ReAct模式...")
+            query = f"请搜索{city}的{keywords}相关景点。对每个景点记录名称、地址、坐标。"
+            if ref_mode in ("strict", "hybrid") and ref_content:
+                names = _extract_place_names(ref_content, city)
+                if names:
+                    query += f"\n请额外搜索以下攻略提到的地点: {', '.join(names[:5])}"
+            subgraph = self._make_search_subgraph(ATTRACTION_SYSTEM, "attractions_info")
+            result = await self._run_react_search(subgraph, query)
 
-        # 严格/混合模式: 追加攻略中的具体地名
-        if ref_mode in ("strict", "hybrid") and ref_content:
-            names = _extract_place_names(ref_content, city)
-            if names:
-                query += f"\n请额外搜索以下攻略提到的地点: {', '.join(names[:5])}"
-
-        subgraph = self._make_search_subgraph(ATTRACTION_SYSTEM, "attractions_info")
-        result = await self._run_react_search(subgraph, query)
         print(f"   景点搜索完成 ({len(result)} 字符)")
         result = result[:3000]
         cache.set(cache_key, result, CACHE_TTL_ATTRACTION)
