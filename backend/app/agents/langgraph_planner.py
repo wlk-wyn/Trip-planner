@@ -401,6 +401,7 @@ class LangGraphTripPlanner:
 
         subgraph = self._make_search_subgraph(ATTRACTION_SYSTEM, "attractions_info", ATTRACTION_TOOLS)
         result = await self._run_react_search(subgraph, query)
+        print(f"   [调试] ReAct结果长度: {len(result)}, 前300字符: {result[:300]}")
 
         # 兜底: 轻量 ReAct 失败或结果为空，回退直接 API
         if not result or len(result) < 100:
@@ -410,6 +411,7 @@ class LangGraphTripPlanner:
                 "city": city,
                 "citylimit": "true",
             })
+            print(f"   [调试] 直接API结果长度: {len(tool_output)}, 前300字符: {tool_output[:300]}")
             if tool_output.strip():
                 result = f"{city} {keywords}景点搜索结果:\n{tool_output}"
 
@@ -598,6 +600,14 @@ class LangGraphTripPlanner:
         使用 asyncio.to_thread 在生成期间发送心跳进度，防止SSE超时。
         """
         print("📋 生成行程计划 (P3 JSON优先)...")
+
+        # 调试: 打印传入LLM的景点/天气/酒店信息预览
+        attr_info = state.get('attractions_info', '')
+        weather_info = state.get('weather_info', '')
+        hotels_info = state.get('hotels_info', '')
+        print(f"   [调试] 景点信息长度: {len(attr_info)}, 前200字符: {attr_info[:200]}")
+        print(f"   [调试] 天气信息长度: {len(weather_info)}, 前200字符: {weather_info[:200]}")
+        print(f"   [调试] 酒店信息长度: {len(hotels_info)}, 前200字符: {hotels_info[:200]}")
 
         is_strict = state.get("reference_mode") == "strict"
         is_hybrid = state.get("reference_mode") == "hybrid"
