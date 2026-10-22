@@ -1,0 +1,213 @@
+{
+  "scope": "real configured model/map, persistent planning including price enrichment and save; two active tasks; driver waiting excluded from task latency; not HTTP load or production p95",
+  "cache_policy": "first wave starts with empty isolated route disk/memory and POI/official policy memory; later waves reuse these caches but stochastic plans may miss; remote model cache not controlled",
+  "provider_metric_scope": "shared query HTTP costs belong to the initiating task; waiters count joins; event seconds are accumulated operation time, not additive wall time",
+  "limits": {
+    "route_qps": 1.0,
+    "poi_qps": 3.0,
+    "planning_max_running": 2
+  },
+  "baseline_report": "backend\\eval\\results\\load-20261017-180219.json",
+  "baseline_sha256": "102753b324aa3e5f1e6b6aabfffc4a8dcf881dac8eedd7d6cedb60daf6d45b93",
+  "current_rule_replay": "backend/eval/results/load-current-rules-20261017.json",
+  "fixed_case_report": "backend\\eval\\results\\load-20261017-180758.json",
+  "fixed_case_sha256": "c665cce0460e4b11fa9bad51a1db3d828763aaaf46a01215aec542af770e8363",
+  "rows": [
+    {
+      "id": "load-cs-walk-1d",
+      "repeat": 1,
+      "seconds": 30.8,
+      "model_seconds": 4.89,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 8.03,
+        "amap_poi_http_attempts": 12,
+        "amap_poi_http_seconds": 2.048,
+        "amap_route_permit_wait_seconds": 46.908,
+        "amap_route_http_attempts": 12,
+        "amap_route_http_seconds": 0.716,
+        "route_memory_hits": 9
+      },
+      "schedule_passed_at_run": true,
+      "reference_checks_passed": false,
+      "constraints": {
+        "max_attractions_per_day": false,
+        "allowed_route_modes": true
+      }
+    },
+    {
+      "id": "load-hz-slow-2d",
+      "repeat": 1,
+      "seconds": 42.88,
+      "model_seconds": 8.14,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 11.891,
+        "amap_poi_http_attempts": 12,
+        "amap_poi_http_seconds": 2.547,
+        "amap_route_permit_wait_seconds": 86.359,
+        "amap_route_http_attempts": 18,
+        "amap_route_http_seconds": 1.55,
+        "route_memory_hits": 30
+      },
+      "schedule_passed_at_run": true,
+      "reference_checks_passed": true,
+      "constraints": {
+        "max_attractions_per_day": true
+      }
+    },
+    {
+      "id": "load-xa-budget-3d",
+      "repeat": 1,
+      "seconds": 81.41,
+      "model_seconds": 10.33,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 8.654,
+        "amap_poi_http_attempts": 19,
+        "amap_poi_http_seconds": 3.094,
+        "amap_route_permit_wait_seconds": 148.283,
+        "amap_route_http_attempts": 41,
+        "amap_route_http_seconds": 4.81,
+        "route_memory_hits": 56
+      },
+      "schedule_passed_at_run": true,
+      "reference_checks_passed": false,
+      "constraints": {
+        "max_attractions_per_day": true,
+        "include_keywords": true,
+        "budget": null
+      }
+    },
+    {
+      "id": "load-bj-deep-7d",
+      "repeat": 1,
+      "seconds": 119.53,
+      "model_seconds": 18.19,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 27.394,
+        "amap_poi_http_attempts": 39,
+        "amap_poi_http_seconds": 6.656,
+        "amap_route_permit_wait_seconds": 259.095,
+        "amap_route_http_attempts": 74,
+        "amap_route_http_seconds": 9.999,
+        "route_memory_hits": 94
+      },
+      "schedule_passed_at_run": false,
+      "reference_checks_passed": false,
+      "constraints": {
+        "max_attractions_per_day": true,
+        "include_all_keywords": true
+      }
+    },
+    {
+      "id": "load-cs-walk-1d",
+      "repeat": 2,
+      "seconds": 18.92,
+      "model_seconds": 5.98,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 0.688,
+        "amap_poi_http_attempts": 6,
+        "amap_poi_http_seconds": 1.172,
+        "route_memory_hits": 5,
+        "amap_route_permit_wait_seconds": 20.875,
+        "amap_route_http_attempts": 7,
+        "amap_route_http_seconds": 0.376
+      },
+      "schedule_passed_at_run": true,
+      "reference_checks_passed": true,
+      "constraints": {
+        "max_attractions_per_day": true,
+        "allowed_route_modes": true
+      }
+    },
+    {
+      "id": "load-hz-slow-2d",
+      "repeat": 2,
+      "seconds": 33.91,
+      "model_seconds": 5.72,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 4.22,
+        "amap_poi_http_attempts": 11,
+        "amap_poi_http_seconds": 1.955,
+        "amap_route_permit_wait_seconds": 73.802,
+        "amap_route_http_attempts": 15,
+        "amap_route_http_seconds": 1.482,
+        "route_memory_hits": 11
+      },
+      "schedule_passed_at_run": true,
+      "reference_checks_passed": true,
+      "constraints": {
+        "max_attractions_per_day": true
+      }
+    },
+    {
+      "id": "load-xa-budget-3d",
+      "repeat": 2,
+      "seconds": 67.3,
+      "model_seconds": 9.45,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 1.484,
+        "amap_poi_http_attempts": 8,
+        "amap_poi_http_seconds": 1.484,
+        "route_memory_hits": 54,
+        "amap_route_permit_wait_seconds": 114.214,
+        "amap_route_http_attempts": 29,
+        "amap_route_http_seconds": 4.191
+      },
+      "schedule_passed_at_run": true,
+      "reference_checks_passed": false,
+      "constraints": {
+        "max_attractions_per_day": true,
+        "include_keywords": true,
+        "budget": null
+      }
+    },
+    {
+      "id": "load-bj-deep-7d",
+      "repeat": 2,
+      "seconds": 76.62,
+      "model_seconds": 13.3,
+      "provider_events": {
+        "amap_poi_permit_wait_seconds": 2.685,
+        "amap_poi_http_attempts": 13,
+        "amap_poi_http_seconds": 2.359,
+        "route_memory_hits": 88,
+        "amap_route_permit_wait_seconds": 177.014,
+        "amap_route_http_attempts": 48,
+        "amap_route_http_seconds": 7.141
+      },
+      "schedule_passed_at_run": true,
+      "reference_checks_passed": true,
+      "constraints": {
+        "max_attractions_per_day": true,
+        "include_all_keywords": true
+      }
+    }
+  ],
+  "fixed_rows": [
+    {
+      "id": "load-cs-walk-1d",
+      "repeat": 1,
+      "seconds": 17.33,
+      "reference_checks_passed": true,
+      "constraints": {
+        "max_attractions_per_day": true,
+        "allowed_route_modes": true
+      }
+    },
+    {
+      "id": "load-cs-walk-1d",
+      "repeat": 2,
+      "seconds": 11.28,
+      "reference_checks_passed": true,
+      "constraints": {
+        "max_attractions_per_day": true,
+        "allowed_route_modes": true
+      }
+    }
+  ],
+  "verification": {
+    "backend_tests": 355,
+    "frontend_tests": 36,
+    "build": "passed",
+    "browser": "public failed snapshot shows count error and per-day label"
+  }
+}

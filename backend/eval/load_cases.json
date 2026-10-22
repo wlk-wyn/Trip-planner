@@ -1,0 +1,6 @@
+[
+  {"id":"load-cs-walk-1d","city":"长沙","days":1,"transportation":"步行","accommodation":"无需住宿","party_size":1,"room_count":1,"budget_mode":"deferred","preferences":["美食"],"free_text":"市中心步行逛吃，每天最多4个景点，正常午餐和晚餐，不要太赶。","expect":{"max_attractions_per_day":4,"allowed_route_modes":["walking"]}},
+  {"id":"load-hz-slow-2d","city":"杭州","days":2,"party_size":2,"room_count":1,"budget_mode":"deferred","preferences":["自然风光"],"free_text":"带父母慢游西湖一带，每天最多3个景点，正常吃午饭，少走回头路。","expect":{"max_attractions_per_day":3}},
+  {"id":"load-xa-budget-3d","city":"西安","days":3,"party_size":1,"room_count":1,"destination_budget":1500,"preferences":["历史文化"],"free_text":"一个人旅行，住一间房，目的地内三天总预算1500元，不含往返西安的大交通。想看兵马俑，每天最多3个景点，正常吃三餐。","expect":{"max_attractions_per_day":3,"include_keywords":["兵马俑"],"budget":1500}},
+  {"id":"load-bj-deep-7d","city":"北京","days":7,"party_size":2,"room_count":1,"budget_mode":"deferred","preferences":["历史文化"],"free_text":"两个人深度游北京七天，住一间房，预算稍后再定。想去故宫和天坛，每天最多3个景点，每天正常吃三餐，同一景点不要重复，留出交通时间，避开闭馆日。","expect":{"max_attractions_per_day":3,"include_all_keywords":["故宫","天坛"]}}
+]

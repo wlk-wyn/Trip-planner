@@ -1,0 +1,76 @@
+{
+  "scope": "complete route static JS dependency graph; Node gzip level 6, separately compressed files; excludes CSS, external SDK, API and photos",
+  "before": {
+    "routes": {
+      "Home": {
+        "files": [
+          "assets/index-TSKTfTQZ.js",
+          "assets/vendor-amap-DjbzkRTp.js",
+          "assets/vendor-vue-C6519QCw.js"
+        ],
+        "jsBytes": 961384,
+        "gzipBytes": 310823
+      },
+      "Result": {
+        "files": [
+          "assets/Result-DT31Gaq6.js",
+          "assets/index-TSKTfTQZ.js",
+          "assets/vendor-amap-DjbzkRTp.js",
+          "assets/vendor-vue-C6519QCw.js"
+        ],
+        "jsBytes": 1171526,
+        "gzipBytes": 377302
+      }
+    }
+  },
+  "after": {
+    "routes": {
+      "Home": {
+        "files": [
+          "assets/Home-D1gdp34e.js",
+          "assets/index-Bga5mLyR.js",
+          "assets/trips-BPIO-W-o.js",
+          "assets/vendor-vue-DFQzs7V4.js"
+        ],
+        "jsBytes": 760022,
+        "gzipBytes": 256009
+      },
+      "Result": {
+        "files": [
+          "assets/Result-uImfBAhA.js",
+          "assets/index-Bga5mLyR.js",
+          "assets/index-CEMcetSW.js",
+          "assets/trips-BPIO-W-o.js",
+          "assets/vendor-amap-DIDC5Z6q.js",
+          "assets/vendor-vue-DFQzs7V4.js"
+        ],
+        "jsBytes": 907753,
+        "gzipBytes": 297425
+      }
+    }
+  },
+  "export": {
+    "fixture": "public Beijing 2d",
+    "pdf": {
+      "pages": 14,
+      "bytes": 2146696,
+      "sha256": "68f49c91ebc60ec478f7658c87b5875f14669bc2e5d3a02b776ee6c7e06751ef"
+    },
+    "png": {
+      "size": [
+        1384,
+        23517
+      ],
+      "bytes": 3174877,
+      "sha256": "e3eaadf0d63fbc08bfb538ec4b4680e592bc2be3d3ec07271640e6ee8152476d"
+    },
+    "theme": "dark",
+    "original_theme_preserved": true,
+    "export_iframes_after": 0
+  },
+  "tests": {
+    "frontend": 33,
+    "build": "passed",
+    "original_db_unchanged": true
+  }
+}

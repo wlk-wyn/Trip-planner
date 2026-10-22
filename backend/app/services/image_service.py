@@ -2,6 +2,7 @@
 
 import os
 import requests
+from functools import lru_cache
 from typing import List, Optional
 
 
@@ -13,25 +14,11 @@ class ImageService:
         self.base_url = "https://api.pexels.com/v1"
 
     def search_photos(self, query: str, per_page: int = 3) -> List[dict]:
-        # 策略1: 原始短查询
         photos = self._search_pexels(query, per_page)
-        if photos:
+        if photos or len(query) <= 8:
             return photos
-
-        # 策略2: 取前8个字符再搜
-        if len(query) > 8:
-            short = query[:8]
-            photos = self._search_pexels(short, per_page)
-            if photos:
-                return photos
-
-        # 策略3: 尝试英文通用词
-        if "餐" in query or "食" in query or "馆" in query or "厅" in query:
-            photos = self._search_pexels("food restaurant", per_page)
-        else:
-            photos = self._search_pexels("travel landmark", per_page)
-
-        return photos if photos else []
+        # 长名称再用前8个字符查一次；不再退回与地点无关的通用风景图
+        return self._search_pexels(query[:8], per_page)
 
     def _search_pexels(self, query: str, per_page: int) -> List[dict]:
         if not self.pexels_key:
@@ -41,7 +28,7 @@ class ImageService:
                 f"{self.base_url}/search",
                 params={"query": query, "per_page": per_page},
                 headers={"Authorization": self.pexels_key},
-                timeout=8
+                timeout=3
             )
             if resp.status_code != 200:
                 return []
@@ -57,6 +44,7 @@ class ImageService:
         except Exception:
             return []
 
+    @lru_cache(maxsize=256)
     def get_photo_url(self, query: str) -> Optional[str]:
         photos = self.search_photos(query, per_page=3)
         if not photos:

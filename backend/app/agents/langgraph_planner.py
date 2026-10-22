@@ -6,8 +6,14 @@ Graph: START → AttractionReAct → WeatherReAct → HotelReAct → Planner →
 """
 
 import os
+import asyncio
 import json
+import math
 import re
+import shutil
+import sys
+from pathlib import Path
+from datetime import date, timedelta
 from typing import TypedDict, List, Optional, Annotated, Literal
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -17,7 +23,11 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, BaseMessage, ToolMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from ..config import get_settings
-from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, WeatherInfo, Location, Hotel
+from ..models.schemas import TripRequest, TripPlan, Location, Meal
+from ..services.place_facts import apply_provider_facts, AMAP_MEAL_SOURCE, AMAP_HOTEL_SOURCE
+from ..services.restaurant_candidates import automatic_restaurant, suitable_restaurant
+from ..services.meal_service import meal_service
+from ..services.amap_rest import get_forecast, search_pois, search_nearby_restaurants, hotel_candidates
 
 
 # ============ State ============
@@ -39,6 +49,7 @@ class PlannerState(TypedDict):
     attractions_info: str
     weather_info: str
     hotels_info: str
+    restaurants_info: str
     # ReAct消息 (每个阶段独立的消息历史)
     attraction_messages: Annotated[List[BaseMessage], add_messages]
     weather_messages: Annotated[List[BaseMessage], add_messages]
@@ -87,65 +98,84 @@ PLANNER_SYSTEM = """你是行程规划专家。根据收集到的景点、天气
     "day": 1,
     "date": "YYYY-MM-DD",
     "weather": "天气简述",
-    "accommodation": {"name": "酒店名", "address": "地址", "coordinate": [lng, lat], "price_range": "300-500元"},
+    "accommodation": {"name": "候选酒店名", "address": "候选地址", "coordinate": [lng, lat], "price_range": ""},
     "activities": [
-      {"time": "09:00-11:30", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 150, "description": "景点描述", "category": "类别", "ticket_price": 60},
+      {"time": "09:00-11:30", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 150, "description": "景点描述", "category": "类别", "ticket_price": 0},
       {"time": "14:00-16:00", "spot": "景点名", "address": "地址", "coordinates": [lng, lat], "duration": 120, "description": "景点描述", "category": "类别", "ticket_price": 0}
     ],
     "meals": [
-      {"type": "breakfast", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜1","招牌菜2"], "description": "推荐理由", "avg_cost": 30},
-      {"type": "lunch", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "avg_cost": 60},
-      {"type": "dinner", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "avg_cost": 90}
+      {"type": "breakfast", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜1","招牌菜2"], "description": "推荐理由", "avg_cost": 0},
+      {"type": "lunch", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "avg_cost": 0},
+      {"type": "dinner", "restaurant": "餐厅名", "address": "地址", "coordinates": [lng, lat], "recommended_dishes": ["招牌菜"], "description": "推荐理由", "avg_cost": 0}
     ]
   }]
 }
 ```
 
 **关键要求:**
+- 景点、餐厅、酒店只能从提供的高德地点候选中选择，名称、地址和坐标必须照候选值填写；不能凭记忆补造具体地址或坐标
+- 未提供的价格、评分和营业信息保持空值或0，不要编造；没有对应日期预报时不要填写天气
 - 每个meal的restaurant必须是具体餐厅名称(字符串),不是对象
 - recommended_dishes必须是数组,包含1-3个真实菜名
 - 坐标(coordinates/coordinate)用[lng, lat]数组格式
-- 每天必须包含完整的早中晚三餐
+- 尽量安排早中晚三餐；餐厅候选不足时宁可留空，也不能编造地点
 - 直接返回JSON,不要包wrapper,不要用驼峰命名"""
 
 
 # ============ LangGraph ReAct Planner ============
+
+def build_chat_model(model: str) -> ChatOpenAI:
+    """Bounded timeout/retries so a stuck provider fails visibly instead of hanging the run."""
+    return ChatOpenAI(
+        model=model,
+        api_key=os.getenv("LLM_API_KEY"),
+        base_url=os.getenv("LLM_BASE_URL", "https://api.deepseek.com"),
+        temperature=float(os.getenv("LLM_TEMPERATURE", "0.3")),
+        timeout=float(os.getenv("LLM_TIMEOUT", "90")),
+        max_retries=int(os.getenv("LLM_MAX_RETRIES", "1")),
+        stream_usage=True,
+    )
+
 
 class LangGraphTripPlanner:
     """基于 LangGraph ReAct 的多智能体旅行规划器"""
 
     def __init__(self):
         settings = get_settings()
-        self.llm = ChatOpenAI(
-            model=os.getenv("LLM_MODEL_ID", "deepseek-chat"),
-            api_key=os.getenv("LLM_API_KEY"),
-            base_url=os.getenv("LLM_BASE_URL", "https://api.deepseek.com"),
-            temperature=0.7
-        )
+        self.llm = build_chat_model(os.getenv("LLM_MODEL_ID", "deepseek-chat"))
+        # Light tasks (intake, reference extraction, recommendation ranking) may use a faster model.
+        fast_model = os.getenv("LLM_FAST_MODEL_ID", "").strip()
+        self.fast_llm = build_chat_model(fast_model) if fast_model else self.llm
         self.mcp_client = None
         self.tools = []
         self._initialized = False
+        self._init_lock = asyncio.Lock()
 
     async def _ensure_initialized(self):
         if self._initialized:
             return
-        settings = get_settings()
-        try:
-            self.mcp_client = MultiServerMCPClient({
-                "amap": {
-                    "command": "uvx",
-                    "args": ["amap-mcp-server"],
-                    "env": {"AMAP_MAPS_API_KEY": settings.amap_api_key},
-                    "transport": "stdio"
-                }
-            })
-            self.tools = await self.mcp_client.get_tools()
-            self._initialized = True
-            print(f"✅ LangGraph MCP 工具: {len(self.tools)} 个")
-        except Exception as e:
-            print(f"⚠️ MCP 加载失败: {e}")
-            self.tools = []
-            self._initialized = True
+        async with self._init_lock:
+            if self._initialized:
+                return
+            settings = get_settings()
+            try:
+                local_uvx = Path(sys.executable).with_name("uvx.exe" if os.name == "nt" else "uvx")
+                uvx_command = str(local_uvx) if local_uvx.is_file() else shutil.which("uvx") or "uvx"
+                self.mcp_client = MultiServerMCPClient({
+                    "amap": {
+                        "command": uvx_command,
+                        "args": ["amap-mcp-server"],
+                        "env": {"AMAP_MAPS_API_KEY": settings.amap_api_key},
+                        "transport": "stdio"
+                    }
+                })
+                self.tools = await self.mcp_client.get_tools()
+                self._initialized = True
+                print(f"✅ LangGraph MCP 工具: {len(self.tools)} 个")
+            except Exception as e:
+                print(f"⚠️ MCP 加载失败: {e}")
+                self.tools = []
+                self._initialized = True
 
     # ============ ReAct 搜索节点 (内部循环) ============
 
@@ -167,8 +197,8 @@ class LangGraphTripPlanner:
 
         llm_with_tools = self.llm.bind_tools(self.tools) if self.tools else self.llm
 
-        def agent_node(state: SubState) -> dict:
-            response = llm_with_tools.invoke(
+        async def agent_node(state: SubState) -> dict:
+            response = await llm_with_tools.ainvoke(
                 [SystemMessage(content=system_prompt)] + state["messages"]
             )
             return {"messages": [response]}
@@ -207,54 +237,82 @@ class LangGraphTripPlanner:
     # ============ 顶层 Graph Nodes ============
 
     async def _attraction_node(self, state: PlannerState) -> dict:
-        print("📍 [ReAct] 搜索景点...")
-        await self._ensure_initialized()
-
+        print("📍 [高德] 搜索景点...")
         preferences = state.get("preferences", [])
-        keywords = preferences[0] if preferences else "景点"
         city = state["city"]
+        keywords = ["景点"]
+        if "历史文化" in preferences:
+            keywords.append("博物馆")
+        elif "自然风光" in preferences:
+            keywords.append("风景名胜")
 
-        query = f"请搜索{city}的{keywords}相关景点。对每个景点记录名称、地址、坐标。"
+        if state.get("reference_mode") in ("strict", "hybrid"):
+            keywords.extend(_extract_place_names(state.get("reference_content", ""), city)[:2])
 
-        # 严格/混合模式: 追加攻略中的具体地名
-        ref_mode = state.get("reference_mode", "")
-        ref_content = state.get("reference_content", "")
-        if ref_mode in ("strict", "hybrid") and ref_content:
-            names = _extract_place_names(ref_content, city)
-            if names:
-                query += f"\n请额外搜索以下攻略提到的地点: {', '.join(names[:5])}"
-
-        subgraph = self._make_search_subgraph(ATTRACTION_SYSTEM, "attractions_info")
-        result = await self._run_react_search(subgraph, query)
-        print(f"   景点搜索完成 ({len(result)} 字符)")
-        return {"attractions_info": result[:3000]}
+        searches = await asyncio.gather(
+            *(search_pois(city, keyword, 8) for keyword in keywords),
+            return_exceptions=True,
+        )
+        candidates = []
+        seen = set()
+        for result in searches:
+            if isinstance(result, Exception):
+                print(f"   一项景点查询失败: {result}")
+                continue
+            for poi in result:
+                if poi["name"] not in seen:
+                    seen.add(poi["name"])
+                    candidates.append(poi)
+        if not candidates:
+            raise RuntimeError("未能获得真实景点信息，请稍后重试")
+        if state.get("reference_mode") != "strict":
+            from ..services.attraction_candidates import select_candidates
+            candidates, _ = select_candidates(candidates, keyword=state.get("reference_content") or "")
+        print(f"   景点候选: {len(candidates)} 个")
+        return {"attractions_info": json.dumps(candidates[:14], ensure_ascii=False)}
 
     async def _weather_node(self, state: PlannerState) -> dict:
-        print("🌤️  [ReAct] 查询天气...")
-        await self._ensure_initialized()
-
-        city = state["city"]
-        query = f"请查询{city}从{state['start_date']}到{state['end_date']}每天的天气"
-
-        subgraph = self._make_search_subgraph(WEATHER_SYSTEM, "weather_info")
-        result = await self._run_react_search(subgraph, query)
-        print(f"   天气查询完成 ({len(result)} 字符)")
-        return {"weather_info": result[:2000]}
+        start = date.fromisoformat(state["start_date"])
+        end = date.fromisoformat(state["end_date"])
+        if start > date.today() + timedelta(days=3):
+            return {"weather_info": "出行日期尚无可靠的短期天气预报，请勿编造天气。"}
+        try:
+            casts = await get_forecast(state["city"])
+            matching = [cast for cast in casts if start <= date.fromisoformat(cast["date"]) <= end]
+            return {"weather_info": json.dumps(matching, ensure_ascii=False) if matching else "所选日期暂无天气预报。"}
+        except (RuntimeError, ValueError) as exc:
+            print(f"   天气查询失败: {exc}")
+            return {"weather_info": "天气服务暂不可用，请勿编造天气。"}
 
     async def _hotel_node(self, state: PlannerState) -> dict:
-        print("🏨 [ReAct] 搜索酒店...")
-        await self._ensure_initialized()
-
-        city = state["city"]
+        print("🏨 [高德] 搜索酒店...")
         acc = state["accommodation"]
-        query = f"请搜索{city}的{acc}酒店。如果搜索结果少，尝试'快捷酒店''宾馆''民宿'等关键词。记录名称、地址、坐标、价格。"
-        if state.get("reference_mode") in ("strict", "hybrid") and state.get("reference_content"):
-            query += f"\n攻略参考: {state['reference_content'][:500]}"
+        keyword = "经济型酒店" if "经济" in acc else "豪华酒店" if "豪华" in acc else "酒店"
+        try:
+            candidates = await search_pois(state["city"], keyword, 8)
+        except RuntimeError as exc:
+            print(f"   酒店查询失败: {exc}")
+            candidates = []
+        return {"hotels_info": json.dumps(candidates, ensure_ascii=False)}
 
-        subgraph = self._make_search_subgraph(HOTEL_SYSTEM, "hotels_info")
-        result = await self._run_react_search(subgraph, query)
-        print(f"   酒店搜索完成 ({len(result)} 字符)")
-        return {"hotels_info": result[:2000]}
+    async def _restaurant_node(self, state: PlannerState) -> dict:
+        print("🍽️ [高德] 搜索餐厅...")
+        searches = await asyncio.gather(
+            search_pois(state["city"], "早餐", 6),
+            search_pois(state["city"], "美食", 10),
+            return_exceptions=True,
+        )
+        candidates = []
+        seen = set()
+        for result in searches:
+            if isinstance(result, Exception):
+                print(f"   一项餐厅查询失败: {result}")
+                continue
+            for poi in result:
+                if poi["name"] not in seen:
+                    seen.add(poi["name"])
+                    candidates.append(poi)
+        return {"restaurants_info": json.dumps(candidates[:14], ensure_ascii=False)}
 
     async def _planner_node(self, state: PlannerState) -> dict:
         print("📋 生成行程计划...")
@@ -269,11 +327,12 @@ class LangGraphTripPlanner:
 - 交通: {state['transportation']} | 住宿: {state['accommodation']}
 - 偏好: {', '.join(state.get('preferences', []))}
 
-**景点:** {state.get('attractions_info', '')[:2000]}
+**高德景点候选:** {state.get('attractions_info', '')[:4000]}
 **天气:** {state.get('weather_info', '')[:1500]}
-**酒店:** {state.get('hotels_info', '')[:1500]}
+**高德酒店候选:** {state.get('hotels_info', '')[:2200]}
+**高德餐厅候选:** {state.get('restaurants_info', '')[:3300]}
 
-每天2-3个景点, 地理就近排列, 每餐推荐具体餐厅(名称+地址+坐标+招牌菜)。返回完整JSON。"""
+每天2-3个景点，地理就近排列。只能从候选中选择地点并复制地址及坐标；价格未知则填0或空字符串。若餐厅候选不足，可以少推荐餐饮，不能编造店铺。返回完整JSON。"""
         if state.get("free_text_input"):
             query += f"\n额外要求: {state['free_text_input']}"
 
@@ -296,70 +355,41 @@ class LangGraphTripPlanner:
     # ============ 主 Graph ============
 
     async def get_alternatives_async(self, city: str, day_index: int, replace_type: str,
-                                      current_name: str, current_category: str = "", context: str = "") -> list:
-        """获取AI优化的备选项(使用LangGraph LLM + MCP工具)"""
-        await self._ensure_initialized()
-        print(f"🔄 [LangGraph] 搜索备选{replace_type}: {city} (排除'{current_name}')")
-
-        if replace_type == "attraction":
-            keyword = current_category or "景点"
-            system = "你是景点搜索专家。请搜索城市景点，为每个结果返回名称、地址、坐标、类型。"
-            query = f"请搜索{city}的{keyword}景点（排除{current_name}），返回5个最佳备选。格式: [{{\"name\":\"景点名\",\"address\":\"地址\",\"location\":{{\"longitude\":x,\"latitude\":y}},\"reason\":\"推荐理由\"}}]"
-        elif replace_type == "meal":
-            system = "你是美食搜索专家。请搜索城市餐厅，为每个结果返回名称、地址、坐标、招牌菜。"
-            query = f"请搜索{city}的特色餐厅或美食（排除{current_name}），返回5个最佳备选。格式: [{{\"name\":\"餐厅名\",\"address\":\"地址\",\"location\":{{\"longitude\":x,\"latitude\":y}},\"recommended_dish\":\"招牌菜\",\"estimated_cost\":人均价格,\"reason\":\"推荐理由\"}}]"
-        else:
-            return []
-
-        if context:
-            query += f"\n行程上下文: {context}"
-
+                                      current_name: str, current_category: str = "", context: str = "",
+                                      current_location: Optional[dict] = None) -> list:
+        """DIY 备选直接来自高德，不再等待 MCP/LLM 或返回臆造坐标。"""
+        keyword = current_category or "景点" if replace_type == "attraction" else "酒店" if replace_type == "hotel" else "餐厅"
         try:
-            llm_with_tools = self.llm.bind_tools(self.tools) if self.tools else self.llm
-            messages = [SystemMessage(content=system), HumanMessage(content=query)]
-
-            # ReAct循环: 搜索直到满意
-            max_rounds = 3
-            for _ in range(max_rounds):
-                response = await llm_with_tools.ainvoke(messages)
-                messages.append(response)
-
-                if hasattr(response, 'tool_calls') and response.tool_calls:
-                    for tc in response.tool_calls:
-                        tool = next((t for t in self.tools if t.name == tc["name"]), None)
-                        if tool:
-                            result = await tool.ainvoke(tc["args"])
-                            messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
-                else:
-                    break  # 无更多工具调用，搜索完成
-
-            # 解析结果
-            result_text = messages[-1].content if hasattr(messages[-1], 'content') else str(messages[-1])
-            return _parse_alt_json(result_text, city, replace_type)
-
-        except Exception as e:
-            print(f"⚠️ 备选搜索失败: {e}")
+            anchor = Location(**current_location) if current_location else None
+        except (TypeError, ValueError):
+            anchor = None
+        try:
+            if replace_type in {"meal", "hotel"} and anchor:
+                pois = await search_nearby_restaurants(anchor.longitude, anchor.latitude, category="100100" if replace_type == "hotel" else "050100")
+            else:
+                pois = await search_pois(city, keyword, 20)
+                if not pois and replace_type == "attraction" and keyword != "景点":
+                    pois = await search_pois(city, "景点", 20)
+        except RuntimeError as exc:
+            print(f"   备选查询失败: {exc}")
             return []
+        if replace_type == "hotel":
+            pois = hotel_candidates(pois)
+        pois = [poi for poi in pois if poi["name"] != current_name and poi["address"]
+                and poi["name"] not in context]
+        if anchor:
+            pois.sort(key=lambda poi: _distance_km(anchor, _poi_location(poi)))
+            nearby = [poi for poi in pois if _distance_km(anchor, _poi_location(poi)) <= 5]
+            if nearby:
+                pois = nearby
+        if replace_type == "attraction":
+            from ..services.attraction_candidates import select_candidates
+            pois, _ = select_candidates(pois)
+        return [{**_poi_as_alternative(poi, anchor), "poi_id": poi["poi_id"]} for poi in pois[:5]]
 
     async def search_poi_async(self, keyword: str, city: str) -> list:
-        """搜索POI用于DIY添加"""
-        await self._ensure_initialized()
-        query = f"请搜索{city}的'{keyword}'，返回匹配结果。格式: [{{\"name\":\"名称\",\"address\":\"地址\",\"location\":{{\"longitude\":x,\"latitude\":y}},\"type\":\"景点或餐厅\"}}]"
-        messages = [SystemMessage(content="搜索POI，返回JSON数组"), HumanMessage(content=query)]
-
-        llm_with_tools = self.llm.bind_tools(self.tools) if self.tools else self.llm
-        for _ in range(3):
-            resp = await llm_with_tools.ainvoke(messages)
-            messages.append(resp)
-            if hasattr(resp, 'tool_calls') and resp.tool_calls:
-                for tc in resp.tool_calls:
-                    tool = next((t for t in self.tools if t.name == tc["name"]), None)
-                    if tool:
-                        result = await tool.ainvoke(tc["args"])
-                        messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
-            else:
-                break
-        return _parse_alt_json(messages[-1].content, city, "attraction")
+        """DIY 搜索直接返回真实地点。"""
+        return [_poi_as_alternative(poi) for poi in await search_pois(city, keyword, 15)]
 
     async def reoptimize_async(self, day_points: list) -> list:
         """对途径点按地理位置重新排序(最近邻算法)"""
@@ -396,19 +426,21 @@ class LangGraphTripPlanner:
         return optimized
 
     def _build_graph(self):
-        """构建主 StateGraph: 3个ReAct搜索 + 1个规划节点"""
+        """构建主 StateGraph: 并行查询真实地点，再生成行程。"""
         workflow = StateGraph(PlannerState)
 
         workflow.add_node("search_attractions", self._attraction_node)
         workflow.add_node("search_weather", self._weather_node)
         workflow.add_node("search_hotels", self._hotel_node)
+        workflow.add_node("search_restaurants", self._restaurant_node)
         workflow.add_node("generate_plan", self._planner_node)
 
-        # 顺序流水线 (每个节点内部有自己的 ReAct 循环)
+        # 各项资料彼此独立，并行搜索后一起进入规划节点
         workflow.add_edge(START, "search_attractions")
-        workflow.add_edge("search_attractions", "search_weather")
-        workflow.add_edge("search_weather", "search_hotels")
-        workflow.add_edge("search_hotels", "generate_plan")
+        workflow.add_edge(START, "search_weather")
+        workflow.add_edge(START, "search_hotels")
+        workflow.add_edge(START, "search_restaurants")
+        workflow.add_edge(["search_attractions", "search_weather", "search_hotels", "search_restaurants"], "generate_plan")
         workflow.add_edge("generate_plan", END)
 
         return workflow.compile()
@@ -432,7 +464,7 @@ class LangGraphTripPlanner:
             "free_text_input": request.free_text_input or "",
             "reference_content": request.reference_content or "",
             "reference_mode": request.reference_mode or "flexible",
-            "attractions_info": "", "weather_info": "", "hotels_info": "",
+            "attractions_info": "", "weather_info": "", "hotels_info": "", "restaurants_info": "",
             "attraction_messages": [], "weather_messages": [], "hotel_messages": [],
             "trip_plan_json": "", "error": "",
         }
@@ -440,16 +472,280 @@ class LangGraphTripPlanner:
         try:
             result = await graph.ainvoke(state)
             trip_plan = _parse_plan_json(result.get("trip_plan_json", ""), request)
+            self._ground_selected_places(trip_plan, result)
+            from ..services.meal_windows import protected_meal_ids
+            await self._align_meals_to_route(trip_plan, protected_ids=protected_meal_ids(trip_plan, request), request=request)
             print("✅ [LangGraph ReAct] 规划完成!")
             return trip_plan
         except Exception as e:
             print(f"❌ 失败: {e}")
             import traceback
             traceback.print_exc()
-            return _create_fallback_plan(request)
+            raise RuntimeError("规划服务暂时不可用，请稍后重试") from e
+
+    def _ground_selected_places(self, trip: TripPlan, state: PlannerState) -> None:
+        """用搜索结果覆盖模型写出的地点数据，拒绝未经查询的具体地点。"""
+        from ..services.map_queries import grounded_weather
+        trip.weather_info = grounded_weather(state,trip.start_date,trip.end_date)
+        def index(key: str) -> dict:
+            grouped = {}
+            for poi in json.loads(state.get(key) or "[]"):
+                if poi.get("name"):
+                    grouped.setdefault(poi["name"], []).append(poi)
+            return grouped
+
+        def select(grouped, name, location=None, poi_id=""):
+            candidates = grouped.get(name, [])
+            if not candidates:
+                return None
+            if poi_id:
+                selected = next((p for p in candidates if p.get("poi_id") == poi_id), None)
+                if selected:
+                    return selected
+                raise ValueError(f"地点 ID 与候选不匹配：{name}")
+            if location:
+                return min(candidates, key=lambda p: _distance_km(location, _poi_location(p)))
+            return candidates[0]
+
+        attractions = index("attractions_info")
+        hotels = index("hotels_info")
+        restaurants = index("restaurants_info")
+
+        for day in trip.days:
+            grounded_attractions = []
+            for attraction in day.attractions:
+                poi = select(attractions, attraction.name, attraction.location, attraction.poi_id)
+                if not poi:
+                    print(f"   跳过未核实景点: {attraction.name}")
+                    continue
+                attraction.poi_id = poi.get("poi_id", "")
+                attraction.identify_place()
+                attraction.address = poi["address"]
+                attraction.location = _poi_location(poi)
+                attraction.ticket_price = None
+                attraction.cost_status = "unknown"
+                attraction.cost_source = ""
+                attraction.open_hours, attraction.hours_evidence, attraction.price_evidence = None, None, None
+                attraction.rating = None
+                attraction.category = poi.get("category") or attraction.category
+                apply_provider_facts(attraction, poi)
+                grounded_attractions.append(attraction)
+            if not grounded_attractions:
+                raise ValueError("当天没有可核实的景点")
+            day.attractions = grounded_attractions
+            day.description = " → ".join(item.name for item in grounded_attractions)
+
+            if day.hotel:
+                poi = select(hotels, day.hotel.name, day.hotel.location, day.hotel.poi_id)
+                if poi:
+                    day.hotel.poi_id = poi.get("poi_id", "")
+                    day.hotel.identify_place()
+                    day.hotel.address = poi["address"]
+                    day.hotel.location = _poi_location(poi)
+                    day.hotel.price_range = ""
+                    day.hotel.estimated_cost = None
+                    day.hotel.cost_status = "unknown"
+                    day.hotel.cost_source = ""
+                    day.hotel.open_hours, day.hotel.hours_evidence, day.hotel.price_evidence = None, None, None
+                    day.hotel.rating = ""
+                    day.hotel.distance = ""
+                    apply_provider_facts(day.hotel, poi)
+                else:
+                    print(f"   跳过未核实酒店: {day.hotel.name}")
+                    day.hotel = None
+                    day.accommodation = "住宿待选择"
+
+            for meal in day.meals:
+                poi = select(restaurants, meal.restaurant or meal.name, meal.location, meal.poi_id)
+                if poi:
+                    meal.poi_id = poi.get("poi_id", "")
+                    meal.identify_place()
+                    meal.restaurant = poi["name"]
+                    meal.address = poi["address"]
+                    meal.location = _poi_location(poi)
+                    meal.estimated_cost = None
+                    meal.cost_status = "unknown"
+                    meal.cost_source = ""
+                    meal.open_hours, meal.hours_evidence, meal.price_evidence = None, None, None
+                    apply_provider_facts(meal, poi)
+                else:
+                    meal.location = None
+
+    @staticmethod
+    def _place_nearby_meals(pending, results, used_restaurants, limit_km, *, request=None):
+        """Add the best nearby restaurant per slot; return the slots still unfilled."""
+        unfilled = []
+        for (day, meal_type, anchor), result in zip(pending, results):
+            if isinstance(result, Exception):
+                print(f"   第{day.day_index + 1}天{meal_type}附近餐厅查询失败: {result}")
+                unfilled.append((day, meal_type, anchor))
+                continue
+            nearby = [poi for poi in result if poi["name"] and poi["name"] not in used_restaurants
+                      and automatic_restaurant(poi, meal_type, visit_parent_ids={a.poi_id for a in day.attractions if a.poi_id})
+                      and _distance_km(anchor, _poi_location(poi)) <= limit_km]
+            assessed = [(poi, meal_service(poi,day,meal_type,request)) for poi in nearby]
+            excluded = sum(state == 'excluded' for _,state in assessed)
+            if excluded:
+                from ..services.observability import record_event
+                record_event('meal_service_exclusions', excluded)
+            usable = [(poi,state) for poi,state in assessed if state != 'excluded']
+            if not usable:
+                unfilled.append((day, meal_type, anchor))
+                continue
+            # A modest uncertainty penalty cannot force a long detour merely
+            # to obtain parseable hours. Actual arrival still needs validation.
+            poi, _ = min(usable, key=lambda row: _restaurant_score(row[0], anchor, meal_type)
+                         + (.25 if row[1] == 'unknown' else 0))
+            used_restaurants.add(poi["name"])
+            distance = round(_distance_km(anchor, _poi_location(poi)) * 1000)
+            meal = Meal(
+                type=meal_type, name="", restaurant=poi["name"], address=poi["address"], poi_id=poi.get("poi_id", ""),
+                route_matched=True,
+                location=_poi_location(poi),
+                description=f"距当日游览点直线约{distance}米；菜品与营业时间请提前核实。",
+                recommended_dish="", estimated_cost=None,
+            )
+            apply_provider_facts(meal, poi)
+            day.meals.append(meal)
+        return unfilled
+
+    async def _align_meals_to_route(self, trip: TripPlan, repair=False, protected_ids=None, *, request=None) -> None:
+        """只保留行程附近的餐厅，并用附近真实 POI 补足三餐。"""
+        if request is not None:
+            from ..services.meal_windows import protected_meal_ids
+            protected_ids = set(protected_ids or ()) | protected_meal_ids(trip, request)
+        pending = []
+        original_meals = {(day.date, meal.type): meal for day in trip.days for meal in day.meals} if repair else {}
+        used_restaurants = set()
+        for day in trip.days:
+            if not day.attractions:
+                continue
+            by_type = {meal.type: meal for meal in day.meals if meal.type in ("breakfast", "lunch", "dinner")}
+            day.meals = [meal for meal in day.meals if meal.type == "snack"]
+            anchors = {
+                "breakfast": day.hotel.location if day.hotel and day.hotel.location else day.attractions[0].location,
+                # Validator inserts lunch AFTER ceil(n/2) visits. Use that last
+                # visited point rather than searching ahead at the next attraction.
+                "lunch": day.attractions[(len(day.attractions) - 1) // 2].location,
+                "dinner": day.attractions[-1].location,
+            }
+            for meal_type, anchor in anchors.items():
+                current = by_type.get(meal_type)
+                if current and (current.locked or current.cost_status == 'confirmed' or current.item_id in (protected_ids or set())):
+                    day.meals.append(current)
+                    used_restaurants.add(current.restaurant or current.name)
+                    continue
+                if repair and (not current or not current.route_matched or current.locked or current.item_id in (protected_ids or set())):
+                    if current:
+                        day.meals.append(current)
+                        used_restaurants.add(current.restaurant or current.name)
+                    continue
+                if (current and current.location
+                        and automatic_restaurant({'name':current.restaurant or current.name, 'category':current.category, 'open_hours':current.open_hours, 'parent_poi_id':current.parent_poi_id, 'coordinates':[current.location.longitude,current.location.latitude]}, meal_type, visit_parent_ids={a.poi_id for a in day.attractions if a.poi_id})
+                        and meal_service(current,day,meal_type,request) != 'excluded'
+                        and _distance_km(anchor, current.location) <= 2.5
+                        and (current.restaurant or current.name) not in used_restaurants):
+                    day.meals.append(current)
+                    used_restaurants.add(current.restaurant or current.name)
+                else:
+                    pending.append((day, meal_type, anchor))
+
+        if not pending:
+            return
+
+        semaphore = asyncio.Semaphore(2)
+
+        async def find_nearby(meal_type: str, anchor: Location, radius: int = 1800) -> list:
+            async with semaphore:
+                for attempt in range(2):
+                    try:
+                        return await search_nearby_restaurants(
+                            anchor.longitude, anchor.latitude,
+                            "早餐" if meal_type == "breakfast" else "",
+                            radius=radius,
+                            category="050000" if meal_type == "breakfast" else "050100",
+                        )
+                    except RuntimeError:
+                        if attempt:
+                            raise
+                        await asyncio.sleep(0.35)
+            return []
+
+        # A wider second pass only for slots the close search could not fill (e.g. scenic areas).
+        for radius, limit_km in ((1800, 2.0), (3500, 3.5)):
+            if not pending:
+                break
+            results = await asyncio.gather(*(
+                find_nearby(meal_type, anchor, radius) for _, meal_type, anchor in pending
+            ), return_exceptions=True)
+            pending = self._place_nearby_meals(pending, results, used_restaurants, limit_km, request=request)
+
+        if repair:
+            for day, meal_type, _anchor in pending:
+                original = original_meals.get((day.date, meal_type))
+                if original and not any(meal.type == meal_type for meal in day.meals):
+                    day.meals.append(original)
+        order = {"breakfast": 0, "lunch": 1, "dinner": 2}
+        for day in trip.days:
+            day.meals.sort(key=lambda meal: order.get(meal.type, 3))
+
+        # 模型写概览时尚未执行附近餐厅校正，移除可能与最终结果矛盾的餐饮信息。
+        sentences = re.split(r"(?<=。)", trip.overall_suggestions)
+        meal_claims = ("餐厅候选", "餐次未", "自行觅食", "未匹配到", "早餐店多集中")
+        trip.overall_suggestions = "".join(
+            sentence for sentence in sentences if not any(claim in sentence for claim in meal_claims)
+        ).strip()
+        if all(len(day.meals) == 3 for day in trip.days):
+            trip.overall_suggestions += " 每天三餐已按当天行程附近的真实地点匹配，营业时间请出行前核实。"
+        else:
+            trip.overall_suggestions += " 部分餐次没有找到合适的附近餐厅，可在 DIY 模式中补充。"
 
 
 # ============ 辅助函数 ============
+
+def _poi_location(poi: dict) -> Location:
+    longitude, latitude = poi["coordinates"]
+    return Location(longitude=longitude, latitude=latitude)
+
+
+def _poi_as_alternative(poi: dict, anchor: Optional[Location] = None) -> dict:
+    distance = _distance_km(anchor, _poi_location(poi)) if anchor else None
+    return {
+        "name": poi["name"],
+        "address": poi["address"],
+        "location": _poi_location(poi).model_dump(),
+        "category": poi.get("category", ""),
+        "reason": (f"距原地点直线约{distance:.1f}公里；开放时间与消费请核实。"
+                   if distance is not None else "高德地图地点候选；开放时间与消费请核实。"),
+        # Restaurant average / hotel lowest price from Amap when published; otherwise unknown.
+        "estimated_cost": poi.get("avg_cost") or poi.get("hotel_price"),
+        "cost_source": AMAP_MEAL_SOURCE if poi.get("avg_cost") else AMAP_HOTEL_SOURCE if poi.get("hotel_price") else "",
+        "open_hours": poi.get("open_hours"),
+        "rating": poi.get("rating"),
+    }
+
+
+def _distance_km(first: Location, second: Location) -> float:
+    lat1, lat2 = math.radians(first.latitude), math.radians(second.latitude)
+    dlat = lat2 - lat1
+    dlng = math.radians(second.longitude - first.longitude)
+    value = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2) ** 2
+    return 12742 * math.asin(min(1, math.sqrt(value)))
+
+
+def _suitable_restaurant(name: str, meal_type: str) -> bool:
+    return suitable_restaurant(name, meal_type)
+
+
+def _restaurant_score(poi: dict, anchor: Location, meal_type: str) -> float:
+    distance = _distance_km(anchor, _poi_location(poi))
+    name = poi["name"]
+    if meal_type == "breakfast":
+        if any(word in name for word in ("早餐", "豆浆", "生煎", "烧麦", "面馆", "五芳斋")):
+            distance -= 0.35
+    elif any(word in name for word in ("杭帮菜", "浙菜", "家常菜", "饭店", "酒楼", "餐厅")):
+        distance -= 0.45
+    return distance
 
 def _extract_place_names(content: str, city: str) -> List[str]:
     patterns = [r'【(.+?)】', r'「(.+?)」', r'"(.+?)"', r'《(.+?)》']
@@ -541,28 +837,33 @@ def _parse_plan_json(response: str, request: TripRequest) -> TripPlan:
             else:
                 acc_str = str(acc_value) if acc_value else request.accommodation
 
+            attractions = [_normalize_attraction(a) for a in found_attrs if isinstance(a, dict)]
+            meals = [_normalize_meal(m, i) for m in found_meals if isinstance(m, dict)]
+            meals = [meal for meal in meals if meal["restaurant"].strip() or meal["name"].strip()]
+            description = raw_day.get("description", raw_day.get("summary", raw_day.get("desc", raw_day.get("overview", ""))))
+            if not description:
+                description = " → ".join(attraction["name"] for attraction in attractions if attraction["name"])
+
             day = {
                 "date": raw_day.get("date", raw_day.get("day_date", "")),
-                "day_index": _normalize_day_index(raw_day, i),
-                "description": raw_day.get("description", raw_day.get("summary", raw_day.get("desc", raw_day.get("overview", "")))),
+                # 列表顺序是最终行程顺序，避免把模型的 0-based/1-based 序号重复换算。
+                "day_index": i,
+                "description": description,
                 "transportation": raw_day.get("transportation", raw_day.get("transport", request.transportation)),
                 "accommodation": acc_str,
                 "route_notes": raw_day.get("route_notes", raw_day.get("routeNotes", raw_day.get("route_note", ""))),
                 "hotel": _normalize_hotel(found_hotel) if found_hotel else None,
-                "attractions": [_normalize_attraction(a) for a in found_attrs if isinstance(a, dict)],
-                "meals": [_normalize_meal(m, i) for m in found_meals if isinstance(m, dict)],
+                "attractions": attractions,
+                "meals": meals,
             }
-
-            # 兜底餐饮
-            if not day["meals"]:
-                for mi, mt in enumerate(["breakfast", "lunch", "dinner"]):
-                    day["meals"].append({"type": mt, "name": f"第{i+1}天{'早午晚'[mi]}餐", "description": "当地美食"})
 
             normalized_days.append(day)
 
         data["days"] = normalized_days
 
         trip = TripPlan(**data)
+        if len(trip.days) != request.travel_days or any(not day.attractions for day in trip.days):
+            raise ValueError("生成的行程天数或景点信息不完整")
         # 调试: 打印第一天数据
         if trip.days:
             d0 = trip.days[0]
@@ -577,7 +878,7 @@ def _parse_plan_json(response: str, request: TripRequest) -> TripPlan:
     except Exception as e:
         print(f"⚠️ JSON解析失败: {e}")
         import traceback; traceback.print_exc()
-        return _create_fallback_plan(request)
+        raise ValueError("生成的行程格式不完整，请重试") from e
 
 
 def _find_item_list(raw_day: dict) -> list:
@@ -661,21 +962,13 @@ def _find_hotel_in_day(raw_day: dict) -> dict | None:
             return raw_day[k]
     return None
 
-def _normalize_day_index(raw_day: dict, fallback: int) -> int:
-    """规范化day_index: 支持1-based和0-based"""
-    val = raw_day.get("day_index", raw_day.get("dayIndex", raw_day.get("day", raw_day.get("day_number", fallback + 1))))
-    try:
-        val = int(val)
-    except (ValueError, TypeError):
-        val = fallback
-    if val >= 1:
-        val -= 1
-    return max(0, val)
-
 def _normalize_hotel(h: dict) -> dict:
     """规范化酒店字段"""
     loc = _normalize_location(h.get("location", h.get("coordinate", h.get("coordinates", h.get("coord")))))
     return {
+        "poi_id": h.get("poi_id", ""),
+        "item_id": h.get("item_id", ""),
+        "locked": h.get("locked", False),
         "name": h.get("name", ""),
         "address": h.get("address", h.get("addr", "")),
         "location": loc,
@@ -701,6 +994,9 @@ def _normalize_attraction(a: dict) -> dict:
         "address": a.get("address", a.get("addr", a.get("location", ""))),
         "location": loc,
         "visit_duration": dur,
+        "poi_id": a.get("poi_id", ""),
+        "item_id": a.get("item_id", ""),
+        "locked": a.get("locked", False),
         "description": a.get("description", a.get("desc", a.get("detail", ""))),
         "category": a.get("category", a.get("type", "景点")),
         "ticket_price": int(a.get("ticket_price", a.get("ticketPrice", a.get("price", a.get("cost", 0)))) or 0),
@@ -770,6 +1066,9 @@ def _normalize_meal(m: dict, default_day: int = 0) -> dict:
         rest_name = str(rest_raw) if rest_raw else ""
 
     return {
+        "poi_id": m.get("poi_id", ""),
+        "item_id": m.get("item_id", ""),
+        "locked": m.get("locked", False),
         "type": meal_type,
         "name": dish_name,
         "restaurant": rest_name,
@@ -851,7 +1150,7 @@ def _extract_alt_by_regex(text: str, city: str, item_type: str) -> list:
         result.append({
             "name": name,
             "address": addresses[i] if i < len(addresses) else f"{city}市",
-            "location": {"longitude": 116.4 + i * 0.01, "latitude": 39.9 + i * 0.01},
+            "location": {"longitude": 0.0, "latitude": 0.0},
             "reason": reasons[i] if i < len(reasons) else f"位于{city}，与行程路线契合",
             "estimated_cost": 0,
             "visit_duration": 120 if item_type == "attraction" else None,
@@ -861,36 +1160,17 @@ def _extract_alt_by_regex(text: str, city: str, item_type: str) -> list:
 
 def _normalize_location(loc) -> dict:
     """规范化坐标: [lng, lat] 或 {lng/lat} 或 {longitude/latitude}"""
-    if loc is None:
-        return {"longitude": 116.4, "latitude": 39.9}
-    if isinstance(loc, (list, tuple)) and len(loc) >= 2:
-        return {"longitude": float(loc[0]), "latitude": float(loc[1])}
-    if isinstance(loc, dict):
-        lng = loc.get("longitude", loc.get("lng", loc.get("lon", loc.get("x", 116.4))))
-        lat = loc.get("latitude", loc.get("lat", loc.get("y", 39.9)))
-        return {"longitude": float(lng), "latitude": float(lat)}
-    return {"longitude": 116.4, "latitude": 39.9}
-
-
-def _create_fallback_plan(request: TripRequest) -> TripPlan:
-    from datetime import datetime, timedelta
-    start = datetime.strptime(request.start_date, "%Y-%m-%d")
-    days = []
-    for i in range(request.travel_days):
-        d = start + timedelta(days=i)
-        days.append(DayPlan(
-            date=d.strftime("%Y-%m-%d"), day_index=i,
-            description=f"第{i+1}天行程",
-            transportation=request.transportation, accommodation=request.accommodation,
-            attractions=[Attraction(
-                name=f"{request.city}景点{j+1}", address=f"{request.city}市",
-                location=Location(longitude=116.4 + i * 0.01 + j * 0.005, latitude=39.9 + i * 0.01 + j * 0.005),
-                visit_duration=120, description=f"{request.city}著名景点"
-            ) for j in range(2)],
-            meals=[Meal(type=t, name=f"第{i+1}天餐", description="推荐美食") for t in ['breakfast', 'lunch', 'dinner']]
-        ))
-    return TripPlan(city=request.city, start_date=request.start_date, end_date=request.end_date,
-                    days=days, weather_info=[], overall_suggestions=f"欢迎来到{request.city}!")
+    try:
+        if isinstance(loc, (list, tuple)) and len(loc) >= 2:
+            return {"longitude": float(loc[0]), "latitude": float(loc[1])}
+        if isinstance(loc, dict):
+            lng = loc.get("longitude", loc.get("lng", loc.get("lon", loc.get("x"))))
+            lat = loc.get("latitude", loc.get("lat", loc.get("y")))
+            if lng is not None and lat is not None:
+                return {"longitude": float(lng), "latitude": float(lat)}
+    except (TypeError, ValueError):
+        pass
+    return {"longitude": 0.0, "latitude": 0.0}
 
 
 _langgraph_planner: Optional[LangGraphTripPlanner] = None

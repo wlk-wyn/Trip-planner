@@ -1,15 +1,22 @@
 """高德地图MCP服务封装"""
 
 from typing import List, Dict, Any, Optional
+from threading import RLock
 from hello_agents.tools import MCPTool
 from ..config import get_settings
 from ..models.schemas import Location, POIInfo, WeatherInfo
 
 # 全局MCP工具实例
 _amap_mcp_tool = None
+_service_lock = RLock()
 
 
 def get_amap_mcp_tool() -> MCPTool:
+    with _service_lock:
+        return _initialize_amap_mcp_tool()
+
+
+def _initialize_amap_mcp_tool() -> MCPTool:
     """
     获取高德地图MCP工具实例(单例模式)
     
@@ -262,8 +269,8 @@ def get_amap_service() -> AmapService:
     """获取高德地图服务实例(单例模式)"""
     global _amap_service
     
-    if _amap_service is None:
-        _amap_service = AmapService()
-    
-    return _amap_service
+    with _service_lock:
+        if _amap_service is None:
+            _amap_service = AmapService()
+        return _amap_service
 

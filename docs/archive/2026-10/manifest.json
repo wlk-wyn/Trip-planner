@@ -1,0 +1,745 @@
+{
+  "purpose": "Historical documentation snapshot; paths are remapped, not deleted.",
+  "archived_on": "2026-10-22",
+  "entries": [
+    {
+      "original": "docs/amap-restored-preview-20261019.png",
+      "archived": "docs/archive/2026-10/amap-restored-preview-20261019.png",
+      "original_sha256": "5f282c5bf8ee0d12a3bbd4afcd5f17ad3a2d7a3de1ead7714eb64c7121b8ada9",
+      "bytes": 47529,
+      "archived_sha256": "5f282c5bf8ee0d12a3bbd4afcd5f17ad3a2d7a3de1ead7714eb64c7121b8ada9",
+      "archived_bytes": 47529,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/APPLE_INSPIRED_UI_2026-10-16.md",
+      "archived": "docs/archive/2026-10/APPLE_INSPIRED_UI_2026-10-16.md",
+      "original_sha256": "6d246cfa0bba02b053739ddb412f38dbcb6a7d62bd4b596ea347ea01f4b26f7f",
+      "bytes": 2321,
+      "archived_sha256": "6d246cfa0bba02b053739ddb412f38dbcb6a7d62bd4b596ea347ea01f4b26f7f",
+      "archived_bytes": 2321,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/ARCHITECTURE.md",
+      "archived": "docs/archive/2026-10/ARCHITECTURE.md",
+      "original_sha256": "e67c0ac42d2b422c318c0a8c79e5cbd69c25bdb3325beb74f9295b4740a619d8",
+      "bytes": 16035,
+      "archived_sha256": "e67c0ac42d2b422c318c0a8c79e5cbd69c25bdb3325beb74f9295b4740a619d8",
+      "archived_bytes": 16035,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/BUDGET_INTAKE_2026-10-16.md",
+      "archived": "docs/archive/2026-10/BUDGET_INTAKE_2026-10-16.md",
+      "original_sha256": "d816b1e36f52796c90c677331c71e3de91e3c088f2a5bab035a2b6dc2ef65af9",
+      "bytes": 4941,
+      "archived_sha256": "d816b1e36f52796c90c677331c71e3de91e3c088f2a5bab035a2b6dc2ef65af9",
+      "archived_bytes": 4941,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/CACHE_RELIABILITY_2026-10-18.md",
+      "archived": "docs/archive/2026-10/CACHE_RELIABILITY_2026-10-18.md",
+      "original_sha256": "f9e29a120c3a2cf86b3fd5bc2c33b96bb948c0855f37c9f2951276b532b23854",
+      "bytes": 5925,
+      "archived_sha256": "f9e29a120c3a2cf86b3fd5bc2c33b96bb948c0855f37c9f2951276b532b23854",
+      "archived_bytes": 5925,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/CANCELLATION_2026-10-18.md",
+      "archived": "docs/archive/2026-10/CANCELLATION_2026-10-18.md",
+      "original_sha256": "abe800d3b70d7c9d4677668087292e47a033821ded757381d9ee680a8ffe0f13",
+      "bytes": 3284,
+      "archived_sha256": "abe800d3b70d7c9d4677668087292e47a033821ded757381d9ee680a8ffe0f13",
+      "archived_bytes": 3284,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/CANDIDATE_QUALITY_2026-10-18.md",
+      "archived": "docs/archive/2026-10/CANDIDATE_QUALITY_2026-10-18.md",
+      "original_sha256": "53d30e945206ad2840666b6e826ed319c62b4cd7457bd147cffb0ea87c32f33c",
+      "bytes": 8744,
+      "archived_sha256": "53d30e945206ad2840666b6e826ed319c62b4cd7457bd147cffb0ea87c32f33c",
+      "archived_bytes": 8744,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/closure-fix-entry-20261019.png",
+      "archived": "docs/archive/2026-10/closure-fix-entry-20261019.png",
+      "original_sha256": "67b90f04ce51fd8a0b4e8ae5b56eae0472f1f85ad41a60e9d9cdfcf4fc10bc2f",
+      "bytes": 45697,
+      "archived_sha256": "67b90f04ce51fd8a0b4e8ae5b56eae0472f1f85ad41a60e9d9cdfcf4fc10bc2f",
+      "archived_bytes": 45697,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/COST_BASIS_2026-10-16.md",
+      "archived": "docs/archive/2026-10/COST_BASIS_2026-10-16.md",
+      "original_sha256": "6d36e243e2b28655631f8e62a682664543d48e90f2ffc50ecf2c889bb1fc59ae",
+      "bytes": 4236,
+      "archived_sha256": "6d36e243e2b28655631f8e62a682664543d48e90f2ffc50ecf2c889bb1fc59ae",
+      "archived_bytes": 4236,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/DRAFT_PREFLIGHT_2026-10-18.md",
+      "archived": "docs/archive/2026-10/DRAFT_PREFLIGHT_2026-10-18.md",
+      "original_sha256": "7e3b77495b2291eeaf30d9a08416db412bea9690345a9f7ce98024f5f4eca389",
+      "bytes": 3866,
+      "archived_sha256": "7e3b77495b2291eeaf30d9a08416db412bea9690345a9f7ce98024f5f4eca389",
+      "archived_bytes": 3866,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/EVENING_PLANNING_2026-10-16.md",
+      "archived": "docs/archive/2026-10/EVENING_PLANNING_2026-10-16.md",
+      "original_sha256": "bb1f62257bec2f4b6f8a4ebab90558eae481ac4ed392340f92f6166405e745f7",
+      "bytes": 3894,
+      "archived_sha256": "bb1f62257bec2f4b6f8a4ebab90558eae481ac4ed392340f92f6166405e745f7",
+      "archived_bytes": 3894,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/FACT_EVIDENCE_2026-10-16.md",
+      "archived": "docs/archive/2026-10/FACT_EVIDENCE_2026-10-16.md",
+      "original_sha256": "3e4628ce856bb8385f7ead0499a052006d48f3e4ff708d2acbe21372da99234c",
+      "bytes": 4657,
+      "archived_sha256": "3e4628ce856bb8385f7ead0499a052006d48f3e4ff708d2acbe21372da99234c",
+      "archived_bytes": 4657,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/FRONTEND_LOADING_2026-10-17.md",
+      "archived": "docs/archive/2026-10/FRONTEND_LOADING_2026-10-17.md",
+      "original_sha256": "c6c438263ddf69ba7b10ccfddc282927220613a6032d9e8096acaeb4a78efa9d",
+      "bytes": 4702,
+      "archived_sha256": "c6c438263ddf69ba7b10ccfddc282927220613a6032d9e8096acaeb4a78efa9d",
+      "archived_bytes": 4702,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/FRONTEND_LOADING_RECEIPT_2026-10-17.json",
+      "archived": "docs/archive/2026-10/FRONTEND_LOADING_RECEIPT_2026-10-17.json",
+      "original_sha256": "ba757eeaac019a9d7ac6be033ab7f5d67e16ae63433162505cf2fa147cdeab2a",
+      "bytes": 1995,
+      "archived_sha256": "ba757eeaac019a9d7ac6be033ab7f5d67e16ae63433162505cf2fa147cdeab2a",
+      "archived_bytes": 1995,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/GITHUB_INTERACTION_RESEARCH_2026-10-16.md",
+      "archived": "docs/archive/2026-10/GITHUB_INTERACTION_RESEARCH_2026-10-16.md",
+      "original_sha256": "4f44d04b1c39daddd8b21ff28694dd3535b17e455b43cef247594d45d9471a66",
+      "bytes": 9013,
+      "archived_sha256": "4f44d04b1c39daddd8b21ff28694dd3535b17e455b43cef247594d45d9471a66",
+      "archived_bytes": 9013,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/GITHUB_REDESIGN_2026-10-16.md",
+      "archived": "docs/archive/2026-10/GITHUB_REDESIGN_2026-10-16.md",
+      "original_sha256": "df93ffc258a97a8120cac42acba353975f0d3b8843c0368d8c6e4c3180d4eec9",
+      "bytes": 7475,
+      "archived_sha256": "df93ffc258a97a8120cac42acba353975f0d3b8843c0368d8c6e4c3180d4eec9",
+      "archived_bytes": 7475,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/HOTEL_QUOTES_2026-10-18.md",
+      "archived": "docs/archive/2026-10/HOTEL_QUOTES_2026-10-18.md",
+      "original_sha256": "8e620b1853eb1387dd99c39860c35656fb8d3a426c318f0bfe8af1b240e3298d",
+      "bytes": 5429,
+      "archived_sha256": "8e620b1853eb1387dd99c39860c35656fb8d3a426c318f0bfe8af1b240e3298d",
+      "archived_bytes": 5429,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/HTTP_RESOURCES_2026-10-18.md",
+      "archived": "docs/archive/2026-10/HTTP_RESOURCES_2026-10-18.md",
+      "original_sha256": "e091c510d7b19155e6e6e8894b557728d0d535e545d47ba77253f4cc3fcb5760",
+      "bytes": 6194,
+      "archived_sha256": "e091c510d7b19155e6e6e8894b557728d0d535e545d47ba77253f4cc3fcb5760",
+      "archived_bytes": 6194,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/http-resource-ui-audit.json",
+      "archived": "docs/archive/2026-10/http-resource-ui-audit.json",
+      "original_sha256": "61ccff6206bd8b7a39635c4c9a34d4ef27503673234a4a3a5d3157c82725437c",
+      "bytes": 106,
+      "archived_sha256": "61ccff6206bd8b7a39635c4c9a34d4ef27503673234a4a3a5d3157c82725437c",
+      "archived_bytes": 106,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/INITIAL_PLANNING_2026-10-16.md",
+      "archived": "docs/archive/2026-10/INITIAL_PLANNING_2026-10-16.md",
+      "original_sha256": "60b9e80d2c768b067b653a0eb88a60e8e226a90bf40b7544448539eb73626de0",
+      "bytes": 5656,
+      "archived_sha256": "60b9e80d2c768b067b653a0eb88a60e8e226a90bf40b7544448539eb73626de0",
+      "archived_bytes": 5656,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/KERNEL_IMPLEMENTATION_2026-10-09.md",
+      "archived": "docs/archive/2026-10/KERNEL_IMPLEMENTATION_2026-10-09.md",
+      "original_sha256": "046fdd42f0379463e2641b845b3b0407732049a090dbafc0342c449c48d8f0f4",
+      "bytes": 5614,
+      "archived_sha256": "046fdd42f0379463e2641b845b3b0407732049a090dbafc0342c449c48d8f0f4",
+      "archived_bytes": 5614,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/KERNEL_RESEARCH_2026-10-09.md",
+      "archived": "docs/archive/2026-10/KERNEL_RESEARCH_2026-10-09.md",
+      "original_sha256": "07df9f4f32ebe322ec87a193c81bcdb4854f4d66ca0602ddd11e27d93f78e253",
+      "bytes": 12656,
+      "archived_sha256": "07df9f4f32ebe322ec87a193c81bcdb4854f4d66ca0602ddd11e27d93f78e253",
+      "archived_bytes": 12656,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/LATE_MEAL_2026-10-16.md",
+      "archived": "docs/archive/2026-10/LATE_MEAL_2026-10-16.md",
+      "original_sha256": "826dcf0e426b92ddcf7d3bbad9df74815f4c8a72941c87dc62ff1666ad4b8aa9",
+      "bytes": 4212,
+      "archived_sha256": "826dcf0e426b92ddcf7d3bbad9df74815f4c8a72941c87dc62ff1666ad4b8aa9",
+      "archived_bytes": 4212,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/LODGING_PREPARATION_2026-10-19.md",
+      "archived": "docs/archive/2026-10/LODGING_PREPARATION_2026-10-19.md",
+      "original_sha256": "172815933afc9385e93c168f1d1a6b41c5058721c40fd4c750419d3bde0b875e",
+      "bytes": 3255,
+      "archived_sha256": "172815933afc9385e93c168f1d1a6b41c5058721c40fd4c750419d3bde0b875e",
+      "archived_bytes": 3255,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/MAP_WEATHER_2026-10-18.md",
+      "archived": "docs/archive/2026-10/MAP_WEATHER_2026-10-18.md",
+      "original_sha256": "cdb1671988b848649700e8922cbe48c870fb067db96cb4bd5fdf4aba6572ed9f",
+      "bytes": 6125,
+      "archived_sha256": "cdb1671988b848649700e8922cbe48c870fb067db96cb4bd5fdf4aba6572ed9f",
+      "archived_bytes": 6125,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/MEAL_AND_DENSITY_2026-10-16.md",
+      "archived": "docs/archive/2026-10/MEAL_AND_DENSITY_2026-10-16.md",
+      "original_sha256": "45ba5c3ce0c0da1a9520142ae39c806f93f59537ce28a00eac96c30ae4fb0db4",
+      "bytes": 4043,
+      "archived_sha256": "45ba5c3ce0c0da1a9520142ae39c806f93f59537ce28a00eac96c30ae4fb0db4",
+      "archived_bytes": 4043,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/MEAL_PREFLIGHT_2026-10-18.md",
+      "archived": "docs/archive/2026-10/MEAL_PREFLIGHT_2026-10-18.md",
+      "original_sha256": "356809d5d773a69aa0940a4b626c5a765567a6ce070d2b156a6bc815ee56595e",
+      "bytes": 6245,
+      "archived_sha256": "356809d5d773a69aa0940a4b626c5a765567a6ce070d2b156a6bc815ee56595e",
+      "archived_bytes": 6245,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/MEAL_TIMING_2026-10-16.md",
+      "archived": "docs/archive/2026-10/MEAL_TIMING_2026-10-16.md",
+      "original_sha256": "0dc6ea0dee944b3d8ed6ad13eaaddca7e152291eee65c8a444c2c6d1a51e460a",
+      "bytes": 3842,
+      "archived_sha256": "0dc6ea0dee944b3d8ed6ad13eaaddca7e152291eee65c8a444c2c6d1a51e460a",
+      "archived_bytes": 3842,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/museum-closure-20261019.png",
+      "archived": "docs/archive/2026-10/museum-closure-20261019.png",
+      "original_sha256": "76de8507751a7e2dd90af6047686a6229ab4b9ba97c1db2f5662e790bbdd2471",
+      "bytes": 47459,
+      "archived_sha256": "76de8507751a7e2dd90af6047686a6229ab4b9ba97c1db2f5662e790bbdd2471",
+      "archived_bytes": 47459,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/NEXT_ITERATION_DESIGN.md",
+      "archived": "docs/archive/2026-10/NEXT_ITERATION_DESIGN.md",
+      "original_sha256": "c01c656ba6a8d7bc976075145f6aff7ef02fa075278da46590df4ad73acd3d05",
+      "bytes": 13589,
+      "archived_sha256": "c01c656ba6a8d7bc976075145f6aff7ef02fa075278da46590df4ad73acd3d05",
+      "archived_bytes": 13589,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/OFFICIAL_TICKETS_2026-10-16.md",
+      "archived": "docs/archive/2026-10/OFFICIAL_TICKETS_2026-10-16.md",
+      "original_sha256": "41956c0d1dec327c1f3f4a390c17094e2e3eab3d0b4e1871ceec9cbca7ad26a9",
+      "bytes": 6925,
+      "archived_sha256": "41956c0d1dec327c1f3f4a390c17094e2e3eab3d0b4e1871ceec9cbca7ad26a9",
+      "archived_bytes": 6925,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/pending-plan-after-audit.json",
+      "archived": "docs/archive/2026-10/pending-plan-after-audit.json",
+      "original_sha256": "ce7a1f7aeb9f59b717a18516cb83eaa1ea97a7b5ff00d9a96afae7a48ecb6b08",
+      "bytes": 316,
+      "archived_sha256": "ce7a1f7aeb9f59b717a18516cb83eaa1ea97a7b5ff00d9a96afae7a48ecb6b08",
+      "archived_bytes": 316,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/pending-plan-before-audit.json",
+      "archived": "docs/archive/2026-10/pending-plan-before-audit.json",
+      "original_sha256": "4ba6862a558ab3254cecf83ba1d2be3d71dd394e339477f0592a406a5f882270",
+      "bytes": 499,
+      "archived_sha256": "4ba6862a558ab3254cecf83ba1d2be3d71dd394e339477f0592a406a5f882270",
+      "archived_bytes": 499,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/PERF_UX_RESEARCH_2026-10-10.md",
+      "archived": "docs/archive/2026-10/PERF_UX_RESEARCH_2026-10-10.md",
+      "original_sha256": "858c9a442a5f232c4161d66095f6fb5194d5a0098ff2543d651beb322f0b7607",
+      "bytes": 12555,
+      "archived_sha256": "858c9a442a5f232c4161d66095f6fb5194d5a0098ff2543d651beb322f0b7607",
+      "archived_bytes": 12555,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/PLANNING_EVAL_2026-10-16.md",
+      "archived": "docs/archive/2026-10/PLANNING_EVAL_2026-10-16.md",
+      "original_sha256": "5f460ab692b5afecb68401c0cad7710a617c4c64567ad2c3bdd2e14f1c875758",
+      "bytes": 5501,
+      "archived_sha256": "5f460ab692b5afecb68401c0cad7710a617c4c64567ad2c3bdd2e14f1c875758",
+      "archived_bytes": 5501,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/PLANNING_MATRIX_2026-10-16.md",
+      "archived": "docs/archive/2026-10/PLANNING_MATRIX_2026-10-16.md",
+      "original_sha256": "bb2c429f9721ad14ef2268d8bd98a7800c8040e3832da20607bf241d41d83517",
+      "bytes": 3614,
+      "archived_sha256": "bb2c429f9721ad14ef2268d8bd98a7800c8040e3832da20607bf241d41d83517",
+      "archived_bytes": 3614,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/PLANNING_RECOVERY_2026-10-18.md",
+      "archived": "docs/archive/2026-10/PLANNING_RECOVERY_2026-10-18.md",
+      "original_sha256": "6179e895c915c3977240b55c2d97fdf825d38159d1909e5d2a3eee0181b9baa1",
+      "bytes": 5118,
+      "archived_sha256": "6179e895c915c3977240b55c2d97fdf825d38159d1909e5d2a3eee0181b9baa1",
+      "archived_bytes": 5118,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/preserved-order-preview-20261019.png",
+      "archived": "docs/archive/2026-10/preserved-order-preview-20261019.png",
+      "original_sha256": "17f8ef67a5c1fb53823a6ffe183d53d35dd2d88cec2169258d1a3501d6480a44",
+      "bytes": 46561,
+      "archived_sha256": "17f8ef67a5c1fb53823a6ffe183d53d35dd2d88cec2169258d1a3501d6480a44",
+      "archived_bytes": 46561,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/PRODUCTION_READINESS_2026-10-16.md",
+      "archived": "docs/archive/2026-10/PRODUCTION_READINESS_2026-10-16.md",
+      "original_sha256": "f83e62ef708987f9669268f401f9b9ff231f2344c6aadc455f2644926bbeca4d",
+      "bytes": 22652,
+      "archived_sha256": "f83e62ef708987f9669268f401f9b9ff231f2344c6aadc455f2644926bbeca4d",
+      "archived_bytes": 22652,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/QUEUE_ADMISSION_2026-10-17.md",
+      "archived": "docs/archive/2026-10/QUEUE_ADMISSION_2026-10-17.md",
+      "original_sha256": "7b48a2d66a07606865dbf32dc4dc198dc30f11da113729b02218991d93082c94",
+      "bytes": 5094,
+      "archived_sha256": "7b48a2d66a07606865dbf32dc4dc198dc30f11da113729b02218991d93082c94",
+      "archived_bytes": 5094,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/QUEUE_ADMISSION_RECEIPT_2026-10-17.json",
+      "archived": "docs/archive/2026-10/QUEUE_ADMISSION_RECEIPT_2026-10-17.json",
+      "original_sha256": "a059713fde4daba368cba1d5b05ba4bc8b5e2090dad81f6fc6386e40e7b94b11",
+      "bytes": 1213,
+      "archived_sha256": "a059713fde4daba368cba1d5b05ba4bc8b5e2090dad81f6fc6386e40e7b94b11",
+      "archived_bytes": 1213,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/REAL_PLANNING_LOAD_2026-10-17.md",
+      "archived": "docs/archive/2026-10/REAL_PLANNING_LOAD_2026-10-17.md",
+      "original_sha256": "699238ce5331cc049cd1152ceb988feb257788f29aaaebf4dcc0018871bdedd9",
+      "bytes": 5982,
+      "archived_sha256": "699238ce5331cc049cd1152ceb988feb257788f29aaaebf4dcc0018871bdedd9",
+      "archived_bytes": 5982,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/REAL_PLANNING_LOAD_RECEIPT_2026-10-17.json",
+      "archived": "docs/archive/2026-10/REAL_PLANNING_LOAD_RECEIPT_2026-10-17.json",
+      "original_sha256": "02675ff3c99e7bee5a77897bc908a689746e0589bee3520c47140f963c161b7e",
+      "bytes": 6956,
+      "archived_sha256": "02675ff3c99e7bee5a77897bc908a689746e0589bee3520c47140f963c161b7e",
+      "archived_bytes": 6956,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/REMOTE_DAY_2026-10-17.md",
+      "archived": "docs/archive/2026-10/REMOTE_DAY_2026-10-17.md",
+      "original_sha256": "3f967660a805f310d54ab3698a5176a8e7887eb3faba4bed11ad2a72e381fb89",
+      "bytes": 5872,
+      "archived_sha256": "3f967660a805f310d54ab3698a5176a8e7887eb3faba4bed11ad2a72e381fb89",
+      "archived_bytes": 5872,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/REMOTE_DAY_RECEIPT_2026-10-17.json",
+      "archived": "docs/archive/2026-10/REMOTE_DAY_RECEIPT_2026-10-17.json",
+      "original_sha256": "a8bdeebdc7ef0f15c3053d61eecc44f239568a6eabf8b10afd6966c794da1aaf",
+      "bytes": 2950,
+      "archived_sha256": "a8bdeebdc7ef0f15c3053d61eecc44f239568a6eabf8b10afd6966c794da1aaf",
+      "archived_bytes": 2950,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/result-checks-20261019.png",
+      "archived": "docs/archive/2026-10/result-checks-20261019.png",
+      "original_sha256": "fe0547ddf39539665dcbc39dd31b4bc1414eec485f5dcd1d672f94dc61bf1acb",
+      "bytes": 42878,
+      "archived_sha256": "fe0547ddf39539665dcbc39dd31b4bc1414eec485f5dcd1d672f94dc61bf1acb",
+      "archived_bytes": 42878,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/RETURN_DINNER_2026-10-16.md",
+      "archived": "docs/archive/2026-10/RETURN_DINNER_2026-10-16.md",
+      "original_sha256": "6f9873bf39d44e2095c04baaf33a36d5b8fc9744e5144db7850b7615f18f5e14",
+      "bytes": 3688,
+      "archived_sha256": "6f9873bf39d44e2095c04baaf33a36d5b8fc9744e5144db7850b7615f18f5e14",
+      "archived_bytes": 3688,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/ROUTE_STABILITY_2026-10-16.md",
+      "archived": "docs/archive/2026-10/ROUTE_STABILITY_2026-10-16.md",
+      "original_sha256": "fffef969d1967c3cf675991353dd19928a4b4cd8a20fa4b026a1b7f150a34c66",
+      "bytes": 3378,
+      "archived_sha256": "fffef969d1967c3cf675991353dd19928a4b4cd8a20fa4b026a1b7f150a34c66",
+      "archived_bytes": 3378,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/route-preview-reason-20261019.png",
+      "archived": "docs/archive/2026-10/route-preview-reason-20261019.png",
+      "original_sha256": "87feeccc8fb8b2015233441835f6be352bc2a7a28121b67e674fb022e90a72e6",
+      "bytes": 48651,
+      "archived_sha256": "87feeccc8fb8b2015233441835f6be352bc2a7a28121b67e674fb022e90a72e6",
+      "archived_bytes": 48651,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/RUN_LEASES_2026-10-16.md",
+      "archived": "docs/archive/2026-10/RUN_LEASES_2026-10-16.md",
+      "original_sha256": "133ba1a06393bfc115b7d5262f9b6b86b20896e5f247e3f8a8b31c8f893f05c7",
+      "bytes": 5056,
+      "archived_sha256": "133ba1a06393bfc115b7d5262f9b6b86b20896e5f247e3f8a8b31c8f893f05c7",
+      "archived_bytes": 5056,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/SHARED_LIMITS_2026-10-16.md",
+      "archived": "docs/archive/2026-10/SHARED_LIMITS_2026-10-16.md",
+      "original_sha256": "ee4f422d22bc7521d292d0f933995a4432c5bd20723c898ed50c70897442f0db",
+      "bytes": 3312,
+      "archived_sha256": "ee4f422d22bc7521d292d0f933995a4432c5bd20723c898ed50c70897442f0db",
+      "archived_bytes": 3312,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/TIMING_REPAIR_LOOP_2026-10-16.md",
+      "archived": "docs/archive/2026-10/TIMING_REPAIR_LOOP_2026-10-16.md",
+      "original_sha256": "0e5e7e7612f424a86c10cbd74d049fe2dded478f2f64934dde239122774b137a",
+      "bytes": 3553,
+      "archived_sha256": "0e5e7e7612f424a86c10cbd74d049fe2dded478f2f64934dde239122774b137a",
+      "archived_bytes": 3553,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/UI_FIX_COMPARISON_2026-10-16.md",
+      "archived": "docs/archive/2026-10/UI_FIX_COMPARISON_2026-10-16.md",
+      "original_sha256": "3ce4029d8e6210418b66d31dec54ba528fc18194eda4f9cb7b22557a7db689cd",
+      "bytes": 2448,
+      "archived_sha256": "3ce4029d8e6210418b66d31dec54ba528fc18194eda4f9cb7b22557a7db689cd",
+      "archived_bytes": 2448,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/UI_MOTION_2026-10-16.md",
+      "archived": "docs/archive/2026-10/UI_MOTION_2026-10-16.md",
+      "original_sha256": "dec6c5d2458374dce0a025aedf13246ec7fce55db8881de75a965341e56df322",
+      "bytes": 1679,
+      "archived_sha256": "dec6c5d2458374dce0a025aedf13246ec7fce55db8881de75a965341e56df322",
+      "archived_bytes": 1679,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/UI_PHASE1_2026-10-16.md",
+      "archived": "docs/archive/2026-10/UI_PHASE1_2026-10-16.md",
+      "original_sha256": "7c086d3add2da1b4d76ad2347deae7039da123c098da594310c220c443508c5f",
+      "bytes": 2515,
+      "archived_sha256": "7c086d3add2da1b4d76ad2347deae7039da123c098da594310c220c443508c5f",
+      "archived_bytes": 2515,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/VENUE_ROUTING_2026-10-18.md",
+      "archived": "docs/archive/2026-10/VENUE_ROUTING_2026-10-18.md",
+      "original_sha256": "3f0400c0749c2390f4e7885d63ade4bfd2498bd4a17874a4a7d218a96f76d5b0",
+      "bytes": 5401,
+      "archived_sha256": "3f0400c0749c2390f4e7885d63ade4bfd2498bd4a17874a4a7d218a96f76d5b0",
+      "archived_bytes": 5401,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/VISIT_ADVICE_2026-10-19.md",
+      "archived": "docs/archive/2026-10/VISIT_ADVICE_2026-10-19.md",
+      "original_sha256": "d6995602e3a5a242e11ec238ba6f8b6a061a7977f9ebbe53e389413ea80a611a",
+      "bytes": 4691,
+      "archived_sha256": "d6995602e3a5a242e11ec238ba6f8b6a061a7977f9ebbe53e389413ea80a611a",
+      "archived_bytes": 4691,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/VISITOR_PREPARATION_2026-10-18.md",
+      "archived": "docs/archive/2026-10/VISITOR_PREPARATION_2026-10-18.md",
+      "original_sha256": "0cf53e5deff8d9dbdc07b88359d9a591de33afa985853b3f93c30e8b996d7ec0",
+      "bytes": 5633,
+      "archived_sha256": "0cf53e5deff8d9dbdc07b88359d9a591de33afa985853b3f93c30e8b996d7ec0",
+      "archived_bytes": 5633,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/WAIT_AWARE_DURATION_2026-10-16.md",
+      "archived": "docs/archive/2026-10/WAIT_AWARE_DURATION_2026-10-16.md",
+      "original_sha256": "94c37d6bdd0247e052c87c654ab38e1736d157fbc16c1913d7890884d3854a85",
+      "bytes": 4398,
+      "archived_sha256": "94c37d6bdd0247e052c87c654ab38e1736d157fbc16c1913d7890884d3854a85",
+      "archived_bytes": 4398,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/budget-clarification.png",
+      "archived": "docs/archive/2026-10/screenshots/budget-clarification.png",
+      "original_sha256": "cea8ab3266d552e753f7b329480ca5fe0db44561d8b28840fa45f378dff11283",
+      "bytes": 45698,
+      "archived_sha256": "cea8ab3266d552e753f7b329480ca5fe0db44561d8b28840fa45f378dff11283",
+      "archived_bytes": 45698,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/candidate-quality-result.png",
+      "archived": "docs/archive/2026-10/screenshots/candidate-quality-result.png",
+      "original_sha256": "a9f8a996ff00b29e987cc04eee2d49e060ba99e8e92e2b47f79051c339067a4c",
+      "bytes": 69834,
+      "archived_sha256": "a9f8a996ff00b29e987cc04eee2d49e060ba99e8e92e2b47f79051c339067a4c",
+      "archived_bytes": 69834,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/daily-limit-20261017.png",
+      "archived": "docs/archive/2026-10/screenshots/daily-limit-20261017.png",
+      "original_sha256": "2d086f21e409ae279489ef579943e7506a95a6b3691d3ee1568722d41e14509b",
+      "bytes": 53800,
+      "archived_sha256": "2d086f21e409ae279489ef579943e7506a95a6b3691d3ee1568722d41e14509b",
+      "archived_bytes": 53800,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/frontend-mobile-20261017.png",
+      "archived": "docs/archive/2026-10/screenshots/frontend-mobile-20261017.png",
+      "original_sha256": "40d3031b83ff448336fbd3d530033442fc7534b64f3f58568c746e8d6eeded14",
+      "bytes": 24059,
+      "archived_sha256": "40d3031b83ff448336fbd3d530033442fc7534b64f3f58568c746e8d6eeded14",
+      "archived_bytes": 24059,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/hotel-quote-allowance.png",
+      "archived": "docs/archive/2026-10/screenshots/hotel-quote-allowance.png",
+      "original_sha256": "56eabbfbd0a021dd6ce0d3b8b8c358554da097511694d553422fb7e9e6ed1ab3",
+      "bytes": 81640,
+      "archived_sha256": "56eabbfbd0a021dd6ce0d3b8b8c358554da097511694d553422fb7e9e6ed1ab3",
+      "archived_bytes": 81640,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/hotel-quote-mobile-dark.png",
+      "archived": "docs/archive/2026-10/screenshots/hotel-quote-mobile-dark.png",
+      "original_sha256": "1d06913f23a128b09104de46b5a0eba72ff0d3b397d19abaced279add8edd2fc",
+      "bytes": 32247,
+      "archived_sha256": "1d06913f23a128b09104de46b5a0eba72ff0d3b397d19abaced279add8edd2fc",
+      "archived_bytes": 32247,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/http-resource-busy-mobile.png",
+      "archived": "docs/archive/2026-10/screenshots/http-resource-busy-mobile.png",
+      "original_sha256": "7b14906a4ad6e149466d0fa60a7d9f0fc9711d6c2e35f68fefaadea4fa02f6ca",
+      "bytes": 28775,
+      "archived_sha256": "7b14906a4ad6e149466d0fa60a7d9f0fc9711d6c2e35f68fefaadea4fa02f6ca",
+      "archived_bytes": 28775,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/http-resource-busy.png",
+      "archived": "docs/archive/2026-10/screenshots/http-resource-busy.png",
+      "original_sha256": "62b833a1e1c9115f0577265684d69268aaf04aec9e4459f3314f08b5ed13977c",
+      "bytes": 51464,
+      "archived_sha256": "62b833a1e1c9115f0577265684d69268aaf04aec9e4459f3314f08b5ed13977c",
+      "archived_bytes": 51464,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/lodging-prep-day-trip.png",
+      "archived": "docs/archive/2026-10/screenshots/lodging-prep-day-trip.png",
+      "original_sha256": "cc508a1a0d801a9412618a8bb05b86f8d34dd4f24920bc238f84c0f9005e60d6",
+      "bytes": 46513,
+      "archived_sha256": "cc508a1a0d801a9412618a8bb05b86f8d34dd4f24920bc238f84c0f9005e60d6",
+      "archived_bytes": 46513,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/lodging-prep-mobile-dark.png",
+      "archived": "docs/archive/2026-10/screenshots/lodging-prep-mobile-dark.png",
+      "original_sha256": "e39b65e92d241e2c8ef2918e7d539812384ed8c90ad324e95b18b2b0cb099f13",
+      "bytes": 53395,
+      "archived_sha256": "e39b65e92d241e2c8ef2918e7d539812384ed8c90ad324e95b18b2b0cb099f13",
+      "archived_bytes": 53395,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/motion-review.png",
+      "archived": "docs/archive/2026-10/screenshots/motion-review.png",
+      "original_sha256": "b8d599e9319a3de178d81c6e6516a6637141db8b00f54c63a56ec3bf13d50c7f",
+      "bytes": 67888,
+      "archived_sha256": "b8d599e9319a3de178d81c6e6516a6637141db8b00f54c63a56ec3bf13d50c7f",
+      "archived_bytes": 67888,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/motion-update-20261017.png",
+      "archived": "docs/archive/2026-10/screenshots/motion-update-20261017.png",
+      "original_sha256": "4f3035780983b64969debfe2af5d854199d07c032f456fddfa7a786fe4ec4134",
+      "bytes": 81268,
+      "archived_sha256": "4f3035780983b64969debfe2af5d854199d07c032f456fddfa7a786fe4ec4134",
+      "archived_bytes": 81268,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/official-ticket-mobile.png",
+      "archived": "docs/archive/2026-10/screenshots/official-ticket-mobile.png",
+      "original_sha256": "48ef2cb183c3ffc7da4f058d4f368928bb8a93948fcd10d63ac43f1d5d4f5c6a",
+      "bytes": 41152,
+      "archived_sha256": "48ef2cb183c3ffc7da4f058d4f368928bb8a93948fcd10d63ac43f1d5d4f5c6a",
+      "archived_bytes": 41152,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/pending-plan-mobile-dark.png",
+      "archived": "docs/archive/2026-10/screenshots/pending-plan-mobile-dark.png",
+      "original_sha256": "a6f05b21e160e1d9e9a1425b134005d5def15d475a77e56b33d82243a96111a5",
+      "bytes": 30948,
+      "archived_sha256": "a6f05b21e160e1d9e9a1425b134005d5def15d475a77e56b33d82243a96111a5",
+      "archived_bytes": 30948,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/pending-plan-recovery.png",
+      "archived": "docs/archive/2026-10/screenshots/pending-plan-recovery.png",
+      "original_sha256": "2a4923999e2da1bafeb676f1d96b9a2a0eff5833433e75c7bf83035b105530e0",
+      "bytes": 47462,
+      "archived_sha256": "2a4923999e2da1bafeb676f1d96b9a2a0eff5833433e75c7bf83035b105530e0",
+      "archived_bytes": 47462,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/real-weather-panel.png",
+      "archived": "docs/archive/2026-10/screenshots/real-weather-panel.png",
+      "original_sha256": "f8508e53378efca203cc059b947e42e86d0485270b508262873b1b8eacd8f131",
+      "bytes": 43388,
+      "archived_sha256": "f8508e53378efca203cc059b947e42e86d0485270b508262873b1b8eacd8f131",
+      "archived_bytes": 43388,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/remote-day-adjustment-20261017.png",
+      "archived": "docs/archive/2026-10/screenshots/remote-day-adjustment-20261017.png",
+      "original_sha256": "00e16bc7900461beba7f0537dd065dd03b1d95cc43843f44ac500a698e99d94c",
+      "bytes": 86955,
+      "archived_sha256": "00e16bc7900461beba7f0537dd065dd03b1d95cc43843f44ac500a698e99d94c",
+      "archived_bytes": 86955,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/venue-routing-result.png",
+      "archived": "docs/archive/2026-10/screenshots/venue-routing-result.png",
+      "original_sha256": "91fe1d155c2a33a301ea9485e95099df7be646a6734ee14f308de3df41696cb5",
+      "bytes": 73571,
+      "archived_sha256": "91fe1d155c2a33a301ea9485e95099df7be646a6734ee14f308de3df41696cb5",
+      "archived_bytes": 73571,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/visit-advice-generated-focus.png",
+      "archived": "docs/archive/2026-10/screenshots/visit-advice-generated-focus.png",
+      "original_sha256": "3697b327d889dab5323137e74d3949eccd44401f3520dfcd450d4b45a992969e",
+      "bytes": 98900,
+      "archived_sha256": "3697b327d889dab5323137e74d3949eccd44401f3520dfcd450d4b45a992969e",
+      "archived_bytes": 98900,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/visit-advice-legacy-reference.png",
+      "archived": "docs/archive/2026-10/screenshots/visit-advice-legacy-reference.png",
+      "original_sha256": "0ae070768bcef69f419c1cc43ff6620628d8607e2e1cbebc1206b2e6b42b508b",
+      "bytes": 105061,
+      "archived_sha256": "0ae070768bcef69f419c1cc43ff6620628d8607e2e1cbebc1206b2e6b42b508b",
+      "archived_bytes": 105061,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/visitor-preparation-mobile-dark.png",
+      "archived": "docs/archive/2026-10/screenshots/visitor-preparation-mobile-dark.png",
+      "original_sha256": "8935c26eeb3148b7ab225ff1101d7a6a35975db7ce7ce19507c647a6ef331460",
+      "bytes": 41484,
+      "archived_sha256": "8935c26eeb3148b7ab225ff1101d7a6a35975db7ce7ce19507c647a6ef331460",
+      "archived_bytes": 41484,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "docs/screenshots/visitor-preparation.png",
+      "archived": "docs/archive/2026-10/screenshots/visitor-preparation.png",
+      "original_sha256": "a89219e01cfd0e08b0cb1db8a54c93dc1781d8bfa1035c500c8a201ab1f1cb6a",
+      "bytes": 67717,
+      "archived_sha256": "a89219e01cfd0e08b0cb1db8a54c93dc1781d8bfa1035c500c8a201ab1f1cb6a",
+      "archived_bytes": 67717,
+      "relative_links_updated": 0
+    },
+    {
+      "original": "README.md",
+      "archived": "docs/archive/2026-10/PROJECT_README.md",
+      "original_sha256": "bb07b6de60dee32cf4b46a17312d7363ea884fc8a59fcbfa7a56c438b27afe82",
+      "bytes": 44852,
+      "archived_sha256": "52e2656f080d80b443ec9204c844bef2c36c9ab1190bbe2f4aa12a85a172a198",
+      "archived_bytes": 44657,
+      "relative_links_updated": 39
+    }
+  ],
+  "verification": "All original bytes verified before link relocation; non-Markdown attachments unchanged."
+}

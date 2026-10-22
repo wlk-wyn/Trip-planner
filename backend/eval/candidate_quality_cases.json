@@ -1,0 +1,4 @@
+[
+  {"id":"candidate-bj-history-2d","city":"北京","start_date":"2026-10-20","days":2,"transportation":"公共交通","accommodation":"酒店","party_size":2,"room_count":1,"budget_mode":"deferred","preferences":["历史文化"],"free_text":"两个人在市区慢游，选择普通游客的主体景点，不把整个景区和园内附属点位重复算成几个独立景点。每天最多2个景点，正常吃早午晚三餐，留出交通时间。预算稍后再定。","expect":{"max_attractions_per_day":2}},
+  {"id":"candidate-hz-parks-2d","city":"杭州","start_date":"2026-10-20","days":2,"transportation":"公共交通","accommodation":"酒店","party_size":2,"room_count":1,"budget_mode":"deferred","preferences":["自然风光"],"free_text":"两个人轻松逛公园，选择适合普通游客散步的地点，不把停车场、游客中心当成景点。每天最多2个景点，正常吃早午晚三餐，留出交通时间。预算稍后再定。","expect":{"max_attractions_per_day":2}}
+]

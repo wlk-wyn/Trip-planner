@@ -1,0 +1,18 @@
+{
+  "fixture": "synthetic-recovery-not-generation",
+  "mode": "before",
+  "posts": [
+    {
+      "id": "424fc800-9673-48a8-852f-987d28f18859",
+      "city": "西安",
+      "body_sha256": "f9890ca43f1ba0be57f01fc08d693d773f50ab0bfaa03b258222488a91206ada"
+    },
+    {
+      "id": "424fc800-9673-48a8-852f-987d28f18859",
+      "city": "西安",
+      "body_sha256": "f9890ca43f1ba0be57f01fc08d693d773f50ab0bfaa03b258222488a91206ada"
+    }
+  ],
+  "reads": 1,
+  "persisted_jobs": 1
+}

@@ -1,6 +1,12 @@
 # HelloAgents框架
 hello-agents[protocols]>=0.2.4,<=0.2.9
 
+# 默认 Agent 引擎（本地已使用这些版本验收）
+langgraph>=1.2,<2.0
+langchain-core>=1.4,<2.0
+langchain-openai>=1.2,<2.0
+langchain-mcp-adapters>=0.2,<1.0
+
 # FastAPI和相关依赖
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
@@ -35,3 +41,10 @@ requests>=2.31.0
 # OCR图片文字识别
 pytesseract>=0.3.10
 Pillow>=10.0.0
+
+# 时间窗排程与持久图执行
+ortools>=9.10,<10
+langgraph-checkpoint-sqlite>=3,<4
+
+# 可选：链路追踪与耗时观测（配置 LANGFUSE_* 后生效）
+# langfuse>=3,<4

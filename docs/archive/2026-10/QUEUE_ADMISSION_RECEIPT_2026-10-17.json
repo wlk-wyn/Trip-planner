@@ -1,0 +1,42 @@
+{
+  "scope": "offline local multi-process durable queue; synthetic 150ms work, no model/map; descriptive small sample, not production latency",
+  "cases": [
+    {
+      "mode": "poll_only",
+      "workers": 3,
+      "burst_requests": 16,
+      "accepted": 8,
+      "rejected": 8,
+      "generated_once": 8,
+      "trips": 8,
+      "versions": 8,
+      "sampled_max_running": 2,
+      "completion_p50_seconds": 2.483,
+      "completion_p95_seconds": 6.21,
+      "wall_seconds": 6.327,
+      "all_succeeded": true
+    },
+    {
+      "mode": "completion_wakeup",
+      "workers": 3,
+      "burst_requests": 16,
+      "accepted": 8,
+      "rejected": 8,
+      "generated_once": 8,
+      "trips": 8,
+      "versions": 8,
+      "sampled_max_running": 2,
+      "completion_p50_seconds": 0.834,
+      "completion_p95_seconds": 1.147,
+      "wall_seconds": 1.242,
+      "all_succeeded": true
+    }
+  ],
+  "tests": {
+    "backend": 346,
+    "frontend": 36,
+    "frontend_build": "passed",
+    "subprocess_fault_cases": "backend/eval/results/job-reliability-20261017-175209.json"
+  },
+  "original_database_sha256": "a2268f23f077cf8b59d1a4a4f2657b7827ba1024f9450f7ad2686f27d58a44fa"
+}

@@ -1,0 +1,187 @@
+/* Short, finite feedback. No scroll interception or animation dependency. */
+@keyframes travel-arrive {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes travel-breathe {
+  0%, 100% { opacity: .45; transform: scale(.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+#app .motion-toggle { border: 0; background: transparent; color: var(--color-muted); font-size: 11px; padding: 8px 5px; cursor: pointer; white-space: nowrap; }
+#app .motion-toggle:focus-visible { outline: 2px solid var(--travel-accent); outline-offset: 3px; border-radius: 8px; }
+html[data-motion=on] { scroll-behavior: smooth; }
+/* Keep the disclosure in normal flow: no measured heights or delayed inputs. */
+#app .settings-disclosure { display: grid; grid-template-rows: 0fr; opacity: 0; }
+#app .settings-disclosure.is-open { grid-template-rows: 1fr; opacity: 1; }
+#app .settings-disclosure-inner { min-height: 0; overflow: hidden; }
+html[data-motion=on] #app .settings-disclosure {
+  transition: grid-template-rows .34s cubic-bezier(.22, 1, .36, 1), opacity .22s ease;
+  transition-duration: .34s !important;
+}
+@keyframes travel-tab-accent {
+  from { transform: scaleX(.2); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+#app .travel-redesign .day-tabs button { position: relative; }
+#app .travel-redesign .day-tabs button.selected::after {
+  content: ''; position: absolute; bottom: 0; left: 18px; right: 18px;
+  height: 2px; border-radius: 2px; background: var(--travel-accent-fill);
+}
+html[data-motion=on] #app .travel-redesign .day-tabs button.selected::after {
+  animation: travel-tab-accent .34s cubic-bezier(.22, 1, .36, 1) both;
+  animation-duration: .34s !important;
+}
+/* Change pages without animating the persistent navigation or blocking inputs. */
+html[data-motion=on] #app .page-change-enter-active {
+  animation: none !important;
+  transition: opacity .28s ease, transform .28s cubic-bezier(.16, 1, .3, 1);
+  transition-duration: .28s !important;
+}
+html[data-motion=on] #app .page-change-leave-active {
+  animation: none !important;
+  transition: opacity .14s ease;
+  transition-duration: .14s !important;
+  pointer-events: none;
+}
+html[data-motion=on] #app .page-change-enter-from { opacity: 0; transform: translate3d(0, 10px, 0); }
+html[data-motion=on] #app .page-change-leave-to { opacity: 0; }
+/* Native disclosures retain keyboard and screen-reader behavior. Browsers without
+   intrinsic-size transitions keep the normal instant expansion. */
+@supports (interpolate-size: allow-keywords) and (transition-behavior: allow-discrete) {
+  html[data-motion=on] #app :is(.day-notes, .transfer-detail, .schedule-basis, .conflict-details) {
+    interpolate-size: allow-keywords;
+  }
+  html[data-motion=on] #app :is(.day-notes, .transfer-detail, .schedule-basis, .conflict-details)::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    transition: block-size .28s cubic-bezier(.22, 1, .36, 1), opacity .2s ease, content-visibility .28s allow-discrete;
+    transition-duration: .28s !important;
+  }
+  html[data-motion=on] #app :is(.day-notes, .transfer-detail, .schedule-basis, .conflict-details)[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+@keyframes travel-locate {
+  from { box-shadow: 0 0 0 0 var(--travel-accent); }
+  to { box-shadow: 0 0 0 8px transparent; }
+}
+html[data-motion=on] #app .timeline-stop.is-selected .stop-dot {
+  animation: travel-locate .55s ease-out;
+  animation-duration: .55s !important;
+}
+/* Overlap the two chapters during a switch, without stacking both in the page. */
+#app .travel-redesign .day-panels { position: relative; display: grid; align-items: start; isolation: isolate; }
+#app .travel-redesign .day-progress { position: absolute; top: -9px; left: 26px; right: 26px; height: 2px; overflow: hidden; border-radius: 2px; background: var(--color-border); }
+#app .travel-redesign .day-progress span { display: block; height: 100%; background: var(--travel-accent-fill); transform-origin: left; }
+html[data-motion=on] #app .day-progress span { transition: transform .52s cubic-bezier(.22, 1, .36, 1); transition-duration: .52s !important; }
+html[data-motion=on] #app .travel-reveal { animation: travel-arrive .6s cubic-bezier(.16, 1, .3, 1) backwards; animation-duration: .6s !important; }
+#app .travel-redesign .motion-on { --day-shift: 56px; }
+#app .travel-redesign .motion-on.backward { --day-shift: -56px; }
+#app .travel-redesign .day-panels > .day-panel { grid-area: 1 / 1; min-width: 0; width: 100%; box-sizing: border-box; }
+html[data-motion=on] #app .motion-on .day-switch-enter-active {
+  z-index: 1;
+  transition: opacity .52s ease, transform .52s cubic-bezier(.16, 1, .3, 1);
+  transition-duration: .52s !important;
+  will-change: opacity, transform;
+}
+html[data-motion=on] #app .motion-on .day-switch-enter-to { opacity: 1; transform: translate3d(0, 0, 0); }
+html[data-motion=on] #app .motion-on .day-switch-leave-active {
+  position: relative; visibility: visible; z-index: 0; pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  transition-duration: .18s !important;
+}
+html[data-motion=on] #app .motion-on .day-switch-leave-to {
+  opacity: 0; transform: translate3d(calc(var(--day-shift) * -.35), 0, 0);
+}
+html[data-motion=on] #app .day-tab-number {
+  transition: background-color .25s, color .25s, transform .25s;
+  transition-duration: .25s !important;
+}
+html[data-motion=on] #app .selected .day-tab-number { transform: scale(1.08); }
+html[data-motion=on] #app .app-shell,
+html[data-motion=on] #app .app-header,
+html[data-motion=on] #app .day-panel,
+html[data-motion=on] #app .result-status {
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+  transition-duration: .25s !important;
+}
+html[data-motion=on] #app .stop-content {
+  border-radius: 12px;
+  transition: background-color .2s ease;
+  transition-duration: .2s !important;
+}
+html[data-motion=on] #app .result-title>.result-eyebrow,
+html[data-motion=on] #app .result-title>h1,
+html[data-motion=on] #app .result-title>.travel-dates,
+html[data-motion=on] #app .result-title>.trip-at-a-glance,
+html[data-motion=on] #app .result-head>.head-actions,
+html[data-motion=on] #app .home-redesign .hero-copy,
+html[data-motion=on] #app .home-redesign .travel-workspace {
+  animation: travel-arrive .65s cubic-bezier(.16, 1, .3, 1) backwards;
+  animation-duration: .65s !important;
+}
+html[data-motion=on] #app .result-title>h1 { animation-delay: .06s; }
+html[data-motion=on] #app .result-title>.travel-dates { animation-delay: .12s; }
+html[data-motion=on] #app .result-title>.trip-at-a-glance { animation-delay: .18s; }
+html[data-motion=on] #app .result-head>.head-actions { animation-delay: .22s; }
+html[data-motion=on] #app .home-redesign .travel-workspace { animation-delay: .12s; }
+html[data-motion=on] #app .travel-redesign .day-switch-enter-active .timeline>li {
+  animation: travel-arrive .36s cubic-bezier(.16, 1, .3, 1) backwards;
+  animation-duration: .36s !important;
+}
+html[data-motion=on] #app .day-switch-enter-active .timeline>li:nth-child(2) { animation-delay: .03s; }
+html[data-motion=on] #app .day-switch-enter-active .timeline>li:nth-child(3) { animation-delay: .06s; }
+html[data-motion=on] #app .day-switch-enter-active .timeline>li:nth-child(4) { animation-delay: .09s; }
+html[data-motion=on] #app .day-switch-enter-active .timeline>li:nth-child(5) { animation-delay: .12s; }
+html[data-motion=on] #app .day-switch-enter-active .timeline>li:nth-child(n+6) { animation-delay: .15s; }
+html[data-motion=on] #app .travel-redesign .fix-panel,
+html[data-motion=on] #app .travel-redesign .aside-map.map-open {
+  animation: travel-arrive .32s cubic-bezier(.16, 1, .3, 1) backwards;
+  animation-duration: .32s !important;
+}
+html[data-motion=on] #app details[open]>*:not(summary) {
+  animation: travel-arrive .2s ease-out backwards;
+  animation-duration: .2s !important;
+}
+html[data-motion=on] #app .travel-redesign .head-actions .ant-btn,
+html[data-motion=on] #app .travel-redesign .day-tabs button,
+html[data-motion=on] #app .travel-redesign .day-pager button,
+html[data-motion=on] #app .travel-redesign .fix-panel .apply,
+html[data-motion=on] #app .home-redesign .idea-send,
+html[data-motion=on] #app .theme-toggle {
+  transition: transform .22s cubic-bezier(.2, .7, .2, 1), background-color .2s, box-shadow .22s;
+  transition-duration: .22s !important;
+}
+@media(hover:hover) and (pointer:fine) {
+  html[data-motion=on] #app .timeline li:hover .stop-content { background-color: var(--color-subtle); }
+  html[data-motion=on] #app .travel-redesign .day-tabs button:hover { transform: translateY(-3px); }
+  html[data-motion=on] #app .travel-redesign .head-actions .ant-btn:not(:disabled):hover,
+  html[data-motion=on] #app .travel-redesign .fix-panel .apply:not(:disabled):hover,
+  html[data-motion=on] #app .home-redesign .idea-send:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 5px 15px #00000010; }
+  html[data-motion=on] #app .theme-toggle:hover svg { transform: rotate(-12deg); }
+  html[data-motion=on] #app .trip-list button:not(:disabled):hover { transform: translateY(-3px); box-shadow: 0 8px 22px #0000000a; }
+}
+html[data-motion=on] #app .trip-list button { transition: transform .22s ease, box-shadow .22s ease, border-color .22s; transition-duration: .22s !important; }
+html[data-motion=on] #app .theme-toggle svg { transition: transform .25s; transition-duration: .25s !important; }
+html[data-motion=on] #app .travel-redesign button:not(:disabled):active,
+html[data-motion=on] #app .home-redesign .idea-send:not(:disabled):active { transform: scale(.97); }
+html[data-motion=on] #app .planning-progress::before {
+  content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--travel-accent-fill);
+  animation: travel-breathe 1.6s ease-in-out infinite; animation-duration: 1.6s !important;
+}
+html[data-motion=off] { scroll-behavior: auto; }
+html[data-motion=off] #app *, html[data-motion=off] #app *::before, html[data-motion=off] #app *::after {
+  animation: none !important; transition: none !important; scroll-behavior: auto !important;
+}
+@media(max-width:640px) {
+  #app .travel-redesign .motion-on { --day-shift: 28px; }
+  #app .travel-redesign .motion-on.backward { --day-shift: -28px; }
+  #app .travel-redesign .day-progress { left: 18px; right: 18px; }
+  #app .header-tools { gap: 10px; }
+  #app .motion-toggle { font-size: 10px; padding-inline: 0; }
+}
+@media print {
+  #app *, #app *::before, #app *::after { animation: none !important; transition: none !important; }
+}

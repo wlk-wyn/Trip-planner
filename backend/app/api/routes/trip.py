@@ -3,25 +3,84 @@
 import os
 import re
 import base64
+import ipaddress
+import socket
 import requests
+from urllib.parse import urljoin, urlsplit
 from io import BytesIO
 from bs4 import BeautifulSoup
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from PIL import Image
 from ...models.schemas import (
+    Location,
     TripRequest,
     TripPlanResponse,
+    TripChatRequest,
+    TripChatResponse,
+    TripChatData,
+    TripIntakeRequest,
+    TripIntakeResponse,
     ErrorResponse
 )
 from ...agents.trip_planner_agent import get_trip_planner_agent
 from ...agents.langgraph_planner import get_langgraph_planner
+from ...agents.travel_agent import get_travel_agent
+from ...agents.trip_intake import interpret_trip_intake
+from ...services.schedule_validator import validate_schedule
+from ...services.model_errors import model_service_error
+from ...services.request_gate import protect_request
 
-router = APIRouter(prefix="/trip", tags=["旅行规划"])
+router = APIRouter(prefix="/trip", tags=["旅行规划"], dependencies=[Depends(protect_request)])
 
-# 选择规划引擎: "langgraph" 或 "helloagents"
-PLANNER_ENGINE = os.getenv("PLANNER_ENGINE", "langgraph")
+# 默认运行可自主选择工具的 LangGraph Agent；旧引擎仍可显式切换。
+PLANNER_ENGINE = os.getenv("PLANNER_ENGINE", "agent")
+
+
+@router.post("/intake", response_model=TripIntakeResponse, summary="理解自然语言旅行需求")
+async def intake_trip(request: TripIntakeRequest):
+    """提取已知条件，缺少目的地或具体日期时只追问，不擅自生成日期。"""
+    if request.history[-1].role != "user":
+        raise HTTPException(status_code=422, detail="最后一条消息必须来自用户")
+    try:
+        data = await interpret_trip_intake(request.history)
+        return TripIntakeResponse(success=True, message="需求理解完成", data=data)
+    except Exception as exc:
+        print(f"❌ 理解旅行需求失败: {exc}")
+        status, detail = model_service_error(exc) or (502, "暂时无法理解旅行需求，请重试或使用详细设置")
+        raise HTTPException(status_code=status, detail=detail) from exc
+
+
+def _fetch_public_page(url: str, headers: dict) -> requests.Response:
+    """只抓取公网 HTTP(S) 页面，并逐跳检查重定向地址。"""
+    current = url.strip()
+    for _ in range(5):
+        parsed = urlsplit(current)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password:
+            raise ValueError("仅支持公开的 HTTP 或 HTTPS 网页链接")
+        try:
+            addresses = socket.getaddrinfo(
+                parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80),
+                type=socket.SOCK_STREAM
+            )
+            if not addresses or any(
+                not ipaddress.ip_address(item[4][0]).is_global for item in addresses
+            ):
+                raise ValueError("不能提取本机或内网地址")
+        except (socket.gaierror, OverflowError) as exc:
+            raise ValueError("无法解析网页地址") from exc
+
+        response = requests.get(current, headers=headers, timeout=15, allow_redirects=False)
+        if not response.is_redirect:
+            return response
+        location = response.headers.get("Location")
+        response.close()
+        if not location:
+            raise ValueError("网页重定向地址无效")
+        current = urljoin(current, location)
+    raise ValueError("网页重定向次数过多")
 
 
 @router.post(
@@ -48,15 +107,24 @@ async def plan_trip(request: TripRequest):
         print(f"   天数: {request.travel_days}")
         print(f"{'='*60}\n")
 
-        if PLANNER_ENGINE == "langgraph":
+        if PLANNER_ENGINE == "agent":
+            print("🔄 使用旅行规划 Agent...")
+            trip_plan, _, _, _ = await get_travel_agent().run(request)
+        elif PLANNER_ENGINE == "langgraph":
             print("🔄 使用 LangGraph 引擎...")
             planner = get_langgraph_planner()
             trip_plan = await planner.plan_trip_async(request)
         else:
             print("🔄 使用 HelloAgents 引擎...")
-            agent = get_trip_planner_agent()
-            trip_plan = agent.plan_trip(request)
+            agent = await run_in_threadpool(get_trip_planner_agent)
+            trip_plan = await run_in_threadpool(agent.plan_trip, request)
 
+        if PLANNER_ENGINE != "agent":
+            await validate_schedule(trip_plan, request)
+        from ...services.visit_advice import normalize_generated_advice
+        normalize_generated_advice(trip_plan)
+        from ...services.place_facts import fill_ticket_prices
+        await fill_ticket_prices(trip_plan, get_langgraph_planner().fast_llm)
         print("✅ 旅行计划生成成功,准备返回响应\n")
 
         return TripPlanResponse(
@@ -69,10 +137,47 @@ async def plan_trip(request: TripRequest):
         print(f"❌ 生成旅行计划失败: {str(e)}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"生成旅行计划失败: {str(e)}"
+        status, detail = model_service_error(e) or (
+            500, "规划未能完成，请稍后重试，或减少旅行天数和参考内容"
         )
+        raise HTTPException(status_code=status, detail=detail) from e
+
+
+@router.post("/chat", response_model=TripChatResponse, summary="与旅行规划 Agent 对话")
+async def chat_with_trip_agent(request: TripChatRequest):
+    """基于当前行程连续对话；Agent 自主判断回答还是修改。"""
+    plan = request.plan
+    # This legacy client payload has no repository-owned provider provenance.
+    for day in plan.days:
+        if day.schedule:
+            for segment in day.schedule.segments:
+                segment.from_endpoint=None
+                segment.to_endpoint=None
+        for place in [*day.attractions, *day.meals, *([day.hotel] if day.hotel else [])]:
+            place.parent_poi_id = None
+            place.parent_evidence = None
+    original = request.original_request
+    if not original or (original.city, original.start_date, original.end_date) != (
+        plan.city, plan.start_date, plan.end_date
+    ):
+        original = TripRequest(
+            city=plan.city, start_date=plan.start_date, end_date=plan.end_date,
+            travel_days=len(plan.days),
+            transportation=plan.days[0].transportation if plan.days else "公共交通",
+            accommodation=plan.days[0].accommodation if plan.days else "酒店",
+        )
+    try:
+        updated, reply, changed, actions = await get_travel_agent().run(
+            original, plan, request.message,
+            [turn.model_dump() for turn in request.history],
+        )
+        return TripChatResponse(
+            success=True, message="智能体已回复",
+            data=TripChatData(reply=reply, plan=updated, changed=changed, actions=actions),
+        )
+    except Exception as exc:
+        print(f"❌ Agent 对话失败: {exc}")
+        raise HTTPException(status_code=500, detail="智能体暂时无法完成这次调整，请稍后重试") from exc
 
 
 @router.get(
@@ -81,22 +186,12 @@ async def plan_trip(request: TripRequest):
     description="检查旅行规划服务是否正常"
 )
 async def health_check():
-    """健康检查"""
-    try:
-        # 检查Agent是否可用
-        agent = get_trip_planner_agent()
-
-        return {
-            "status": "healthy",
-            "service": "trip-planner",
-            "agent_name": agent.agent.name,
-            "tools_count": len(agent.agent.list_tools())
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"服务不可用: {str(e)}"
-        )
+    """Only inspect configuration; a health poll must not initialize model/MCP clients."""
+    from ...config import get_settings
+    configured = bool(os.getenv('LLM_API_KEY') or os.getenv('OPENAI_API_KEY') or get_settings().openai_api_key)
+    if not configured:
+        raise HTTPException(503, '模型服务尚未配置')
+    return {'status': 'configured', 'service': 'trip-planner', 'engine': PLANNER_ENGINE, 'upstreams': 'not_probed'}
 
 
 class ExtractUrlRequest(BaseModel):
@@ -143,7 +238,7 @@ async def extract_url_content(request: ExtractUrlRequest):
             "Sec-Ch-Ua-Platform": '"Windows"',
         }
 
-        resp = requests.get(request.url, headers=headers, timeout=15, allow_redirects=True, verify=True)
+        resp = await run_in_threadpool(_fetch_public_page, request.url, headers)
         resp.encoding = resp.apparent_encoding or "utf-8"
 
         if resp.status_code != 200:
@@ -254,6 +349,12 @@ async def extract_url_content(request: ExtractUrlRequest):
                 "data": None
             }
 
+    except ValueError as e:
+        return {
+            "success": False,
+            "message": str(e),
+            "data": None
+        }
     except requests.exceptions.Timeout:
         return {
             "success": False,
@@ -303,7 +404,7 @@ async def extract_image_content(request: ExtractImageRequest):
         try:
             import pytesseract
             # 配置中文识别
-            text = pytesseract.image_to_string(image, lang="chi_sim+eng")
+            text = await run_in_threadpool(pytesseract.image_to_string, image, lang="chi_sim+eng")
         except ImportError:
             return {
                 "success": False,
@@ -352,20 +453,42 @@ async def extract_image_content(request: ExtractImageRequest):
         }
 
 
+class PlaceRecommendationsRequest(BaseModel):
+    city: str = Field(min_length=1, max_length=80)
+    kind: Literal["attraction", "meal", "hotel"]
+    preference: str = Field(default="", max_length=500)
+    context: str = Field(default="", max_length=1500)
+    anchor: Optional[Location] = None
+    excluded_names: list[str] = Field(default_factory=list, max_length=50)
+
+
+@router.post("/recommend-places", summary="询问助手推荐地点，不修改行程")
+async def recommend_trip_places(request: PlaceRecommendationsRequest):
+    from ...services.place_recommendations import recommend_places
+    try:
+        items = await recommend_places(request.city, request.kind, request.preference,
+            request.context, request.anchor, request.excluded_names, get_langgraph_planner().fast_llm)
+        return {"success": True, "data": {"alternatives": items}}
+    except Exception as exc:
+        status, detail = model_service_error(exc) or (502, "地点推荐暂时失败，请重试或直接搜索地点")
+        raise HTTPException(status, detail) from exc
+
+
 class AlternativesRequest(BaseModel):
     """备选项请求"""
     city: str = Field(..., description="城市")
     day_index: int = Field(..., description="第几天(0开始)")
-    replace_type: str = Field(..., description="替换类型: attraction/meal")
+    replace_type: Literal["attraction", "meal", "hotel"] = Field(..., description="替换类型")
     current_name: str = Field(..., description="当前景点/餐厅名称")
     current_category: Optional[str] = Field(default="", description="当前类别")
+    current_location: Optional[dict] = Field(default=None, description="当前地点经纬度")
     context: Optional[str] = Field(default="", description="当天其他行程上下文")
 
 
 @router.post(
     "/alternatives",
-    summary="获取AI优化的备选项",
-    description="为DIY替换提供Agent筛选后的备选景点或餐厅"
+    summary="获取地点备选项",
+    description="为DIY替换提供高德地图地点候选，并按原地点距离排序"
 )
 async def get_alternatives(request: AlternativesRequest):
     """
@@ -384,16 +507,17 @@ async def get_alternatives(request: AlternativesRequest):
         备选项列表
     """
     try:
-        if PLANNER_ENGINE == "langgraph":
+        if PLANNER_ENGINE in ("agent", "langgraph"):
             planner = get_langgraph_planner()
             alternatives = await planner.get_alternatives_async(
                 city=request.city, day_index=request.day_index,
                 replace_type=request.replace_type, current_name=request.current_name,
-                current_category=request.current_category, context=request.context
+                current_category=request.current_category, context=request.context,
+                current_location=request.current_location,
             )
         else:
-            agent = get_trip_planner_agent()
-            alternatives = agent.get_alternatives(
+            agent = await run_in_threadpool(get_trip_planner_agent)
+            alternatives = await run_in_threadpool(agent.get_alternatives,
                 city=request.city, day_index=request.day_index,
                 replace_type=request.replace_type, current_name=request.current_name,
                 current_category=request.current_category, context=request.context
@@ -418,6 +542,7 @@ class SearchPoiRequest(BaseModel):
     """POI搜索请求"""
     keyword: str = Field(..., description="搜索关键词")
     city: str = Field(..., description="城市")
+    kind: Literal["attraction", "meal", "hotel"] = "attraction"
 
 
 class ReoptimizeRequest(BaseModel):
@@ -429,9 +554,15 @@ class ReoptimizeRequest(BaseModel):
 async def search_poi_for_diy(request: SearchPoiRequest):
     """搜索景点/餐厅用于DIY手动添加"""
     try:
-        if PLANNER_ENGINE == "langgraph":
+        if PLANNER_ENGINE in ("agent", "langgraph"):
             planner = get_langgraph_planner()
-            results = await planner.search_poi_async(request.keyword, request.city)
+            from ...services.amap_rest import search_pois, hotel_candidates
+            from ...agents.langgraph_planner import _poi_as_alternative
+            category = {"attraction": "", "meal": "050100", "hotel": "100100"}[request.kind]
+            pois = await search_pois(request.city, request.keyword, 15, category=category)
+            if request.kind == "hotel":
+                pois = hotel_candidates(pois)
+            results = [{**_poi_as_alternative(p), "poi_id": p["poi_id"]} for p in pois]
         else:
             results = []
         return {"success": True, "data": {"results": results}}
@@ -443,7 +574,7 @@ async def search_poi_for_diy(request: SearchPoiRequest):
 async def reoptimize_route(request: ReoptimizeRequest):
     """对当日途径点重新排序，优化路线"""
     try:
-        if PLANNER_ENGINE == "langgraph":
+        if PLANNER_ENGINE in ("agent", "langgraph"):
             planner = get_langgraph_planner()
             optimized = await planner.reoptimize_async(request.day_points)
         else:

@@ -1,0 +1,13 @@
+{
+  "fixture": "synthetic-recovery-not-generation",
+  "mode": "after",
+  "posts": [
+    {
+      "id": "1c34fa2f-16f4-441a-bee0-a7e1b4159cc4",
+      "city": "西安",
+      "body_sha256": "7f15ea4eeedddf75f5bb206207bdd925b597becd1854feeefde0f0e43616de02"
+    }
+  ],
+  "reads": 2,
+  "persisted_jobs": 1
+}

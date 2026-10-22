@@ -1,0 +1,3 @@
+[
+  {"id":"current-bj-weather-1d","city":"北京","start_date":"2026-10-19","days":1,"transportation":"公共交通","accommodation":"无需住宿","party_size":1,"room_count":1,"budget_mode":"deferred","preferences":["历史文化"],"free_text":"市区慢游，每天最多2个景点，正常吃早午晚三餐，留出交通时间。预算稍后再定。","expect":{"max_attractions_per_day":2}}
+]

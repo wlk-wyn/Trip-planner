@@ -1,0 +1,194 @@
+[
+  {
+    "version": 1,
+    "reminders": [
+      {
+        "id": "ef5caa4310ce1207807b4ba506bfb2df",
+        "date": "2026-10-03",
+        "day_index": 0,
+        "name": "西湖博物馆",
+        "kind": "likely_booking",
+        "confirm_by": null,
+        "booking_status": "unverified",
+        "booking_opens_at": null,
+        "policy_source_url": null,
+        "policy_reviewed_on": null,
+        "policy_status": "unknown",
+        "fixed_start_time": null,
+        "message": "该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。"
+      },
+      {
+        "id": "62d00529518c9d896d816eb287d0ac0b",
+        "date": "2026-10-04",
+        "day_index": 1,
+        "name": "西湖博物馆",
+        "kind": "likely_booking",
+        "confirm_by": null,
+        "booking_status": "unverified",
+        "booking_opens_at": null,
+        "policy_source_url": null,
+        "policy_reviewed_on": null,
+        "policy_status": "unknown",
+        "fixed_start_time": null,
+        "message": "该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。"
+      },
+      {
+        "id": "df6b55b1d74212cabbf64661e2f5a174",
+        "date": "2026-10-05",
+        "day_index": 2,
+        "name": "西湖博物馆",
+        "kind": "likely_booking",
+        "confirm_by": null,
+        "booking_status": "unverified",
+        "booking_opens_at": null,
+        "policy_source_url": null,
+        "policy_reviewed_on": null,
+        "policy_status": "unknown",
+        "fixed_start_time": null,
+        "message": "该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。"
+      }
+    ],
+    "stays": [
+      {
+        "name": "示例湖畔酒店",
+        "address": "合成验收路1号",
+        "check_in": "2026-10-03",
+        "check_out": "2026-10-05",
+        "nights": 2,
+        "id": "0f1e81302601cb5d655e7c61a8d407f6"
+      }
+    ],
+    "lodging_note": "按出发日至返程日前一晚计算，共 2 晚；前后延住另行安排。",
+    "packing": [
+      {
+        "item": "身份证件（多数景区和酒店需要实名）",
+        "reason": "基础"
+      },
+      {
+        "item": "手机与充电宝",
+        "reason": "基础"
+      },
+      {
+        "item": "常用药品",
+        "reason": "基础"
+      }
+    ],
+    "weather_note": "出行日期暂无短期预报，临近出发请查看天气后补充衣物。",
+    "note": "部分场馆提供已注明复核日期的官方规则参考；其余按类型提醒。未查询实时余票，预约成功情况需自行核对。"
+  },
+  {
+    "version": 1,
+    "reminders": [
+      {
+        "id": "ef5caa4310ce1207807b4ba506bfb2df",
+        "date": "2026-10-03",
+        "day_index": 0,
+        "name": "西湖博物馆",
+        "kind": "likely_booking",
+        "confirm_by": null,
+        "booking_status": "unverified",
+        "booking_opens_at": null,
+        "policy_source_url": null,
+        "policy_reviewed_on": null,
+        "policy_status": "unknown",
+        "fixed_start_time": null,
+        "message": "该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。"
+      },
+      {
+        "id": "62d00529518c9d896d816eb287d0ac0b",
+        "date": "2026-10-04",
+        "day_index": 1,
+        "name": "西湖博物馆",
+        "kind": "likely_booking",
+        "confirm_by": null,
+        "booking_status": "unverified",
+        "booking_opens_at": null,
+        "policy_source_url": null,
+        "policy_reviewed_on": null,
+        "policy_status": "unknown",
+        "fixed_start_time": null,
+        "message": "该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。"
+      },
+      {
+        "id": "df6b55b1d74212cabbf64661e2f5a174",
+        "date": "2026-10-05",
+        "day_index": 2,
+        "name": "西湖博物馆",
+        "kind": "likely_booking",
+        "confirm_by": null,
+        "booking_status": "unverified",
+        "booking_opens_at": null,
+        "policy_source_url": null,
+        "policy_reviewed_on": null,
+        "policy_status": "unknown",
+        "fixed_start_time": null,
+        "message": "该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。"
+      }
+    ],
+    "stays": [
+      {
+        "name": "示例花园酒店",
+        "address": "合成验收路2号",
+        "check_in": "2026-10-03",
+        "check_out": "2026-10-05",
+        "nights": 2,
+        "id": "97038c42342e4f73c622978adf16290d"
+      }
+    ],
+    "lodging_note": "按出发日至返程日前一晚计算，共 2 晚；前后延住另行安排。",
+    "packing": [
+      {
+        "item": "身份证件（多数景区和酒店需要实名）",
+        "reason": "基础"
+      },
+      {
+        "item": "手机与充电宝",
+        "reason": "基础"
+      },
+      {
+        "item": "常用药品",
+        "reason": "基础"
+      }
+    ],
+    "weather_note": "出行日期暂无短期预报，临近出发请查看天气后补充衣物。",
+    "note": "部分场馆提供已注明复核日期的官方规则参考；其余按类型提醒。未查询实时余票，预约成功情况需自行核对。"
+  },
+  {
+    "version": 1,
+    "reminders": [
+      {
+        "id": "ef5caa4310ce1207807b4ba506bfb2df",
+        "date": "2026-10-03",
+        "day_index": 0,
+        "name": "西湖博物馆",
+        "kind": "likely_booking",
+        "confirm_by": null,
+        "booking_status": "unverified",
+        "booking_opens_at": null,
+        "policy_source_url": null,
+        "policy_reviewed_on": null,
+        "policy_status": "unknown",
+        "fixed_start_time": null,
+        "message": "该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。"
+      }
+    ],
+    "stays": [],
+    "lodging_note": "按当前日期为 0 晚住宿；如需前一晚抵达或返程后住宿，请另行安排。",
+    "packing": [
+      {
+        "item": "身份证件（多数景区和酒店需要实名）",
+        "reason": "基础"
+      },
+      {
+        "item": "手机与充电宝",
+        "reason": "基础"
+      },
+      {
+        "item": "常用药品",
+        "reason": "基础"
+      }
+    ],
+    "weather_note": "出行日期暂无短期预报，临近出发请查看天气后补充衣物。",
+    "note": "部分场馆提供已注明复核日期的官方规则参考；其余按类型提醒。未查询实时余票，预约成功情况需自行核对。"
+  }
+]

@@ -1,0 +1,1952 @@
+[
+  {
+    "id": "bj-history-2d",
+    "request": {
+      "budget_mode": "active",
+      "party_size": null,
+      "room_count": null,
+      "destination_budget": null,
+      "city": "北京",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-07",
+      "travel_days": 2,
+      "transportation": "公共交通",
+      "accommodation": "舒适型酒店",
+      "daily_start_time": "09:00",
+      "daily_end_time": "20:00",
+      "buffer_minutes": 15,
+      "preferences": [
+        "历史文化"
+      ],
+      "free_text_input": "第一次去北京，想看经典古迹",
+      "reference_type": "none",
+      "reference_content": "",
+      "reference_mode": "flexible",
+      "reference_sources": [],
+      "reference_candidates": []
+    },
+    "cost_report": {
+      "context": {
+        "party_size": 1,
+        "room_count": 1,
+        "lodging_nights": 1
+      },
+      "assumptions": [
+        "人数未填写，暂按1人试算",
+        "房间数未填写，暂按每晚1间试算"
+      ],
+      "totals": {
+        "attractions": 82.0,
+        "meals": 176.0,
+        "hotels": 0.0,
+        "transport": 38.0
+      },
+      "known_total": 296.0,
+      "unknown_count": 3,
+      "estimated_count": 13,
+      "lines": [
+        {
+          "date": "2026-11-06",
+          "kind": "attractions",
+          "name": "天安门广场",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 0.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "attractions",
+          "name": "故宫博物院",
+          "unit_price": 40.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 40.0,
+          "status": "estimated",
+          "source": "官网公示成人门票参考，非预订报价",
+          "evidence": {
+            "source_url": "https://www.dpm.org.cn/singles_detail/257830.html",
+            "scope": "成人大门票；珍宝馆、钟表馆等另售项目未计；优惠资格另核实",
+            "applies_on": "2026-11-06",
+            "source": "official",
+            "recorded_at": "2026-10-16T14:05:44.883994+00:00",
+            "status": "official_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "attractions",
+          "name": "景山公园",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "meals",
+          "name": "杭州小笼包(王府井店)",
+          "unit_price": 23.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 23.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:25.727063+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "meals",
+          "name": "景运门故宫餐厅",
+          "unit_price": 63.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 63.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.247166+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "meals",
+          "name": "菜团子",
+          "unit_price": 26.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 26.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:26.392026+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "全季酒店(北京天安门广场王府井店) → 杭州小笼包(王府井店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "杭州小笼包(王府井店) → 天安门广场",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "天安门广场 → 景运门故宫餐厅",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "景运门故宫餐厅 → 故宫博物院",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "故宫博物院 → 景山公园",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "景山公园 → 菜团子",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "菜团子 → 全季酒店(北京天安门广场王府井店)",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "attractions",
+          "name": "八达岭长城",
+          "unit_price": 40.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 40.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "翠明庄宾馆",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "八达岭饭店",
+          "unit_price": 64.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 64.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.872882+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "馥苑(王府中环)北京首店",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "全季酒店(北京天安门广场王府井店) → 翠明庄宾馆",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "翠明庄宾馆 → 八达岭饭店",
+          "unit_price": 16.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 16.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "八达岭饭店 → 八达岭长城",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "八达岭长城 → 馥苑(王府中环)北京首店",
+          "unit_price": 16.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 16.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "馥苑(王府中环)北京首店 → 全季酒店(北京天安门广场王府井店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "hotels",
+          "name": "全季酒店(北京天安门广场王府井店)",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "间夜",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        }
+      ],
+      "budget": {
+        "limit": null,
+        "status": "not_set"
+      },
+      "exclusions": [
+        "往返目的地的大交通",
+        "购物、个人消费及额外项目",
+        "行程日期外的住宿和额外用餐"
+      ],
+      "notes": [
+        "门票和公共交通按成人参考价计算；儿童、学生等优惠需另核实。",
+        "官网公示门票也只是当前政策参考，单独售票展览、讲解和园内交通等未列项目另计；不代表余票或预订成功。",
+        "住宿按出发日至返程日前一晚计算，最后一天列出的酒店不另算一晚。",
+        "这是已列项目的参考小计，不是预订报价或完整旅行总价。"
+      ]
+    },
+    "fact_report": {
+      "items": [
+        {
+          "date": "2026-11-06",
+          "item_id": "4b4accdc87a45c80b96874068fb3d356",
+          "name": "天安门广场",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:12.210954+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "f9b79042600f581a9ece0b90edaf77a9",
+          "name": "故宫博物院",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:11.867632+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source_url": "https://www.dpm.org.cn/singles_detail/257830.html",
+            "scope": "成人大门票；珍宝馆、钟表馆等另售项目未计；优惠资格另核实",
+            "applies_on": "2026-11-06",
+            "source": "official",
+            "recorded_at": "2026-10-16T14:05:44.883994+00:00",
+            "status": "official_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "3f5fccc8d33b50b6bd1655ddffd837fe",
+          "name": "景山公园",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:15.619404+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "e8eb1e07bcae5b91a171c1e4073f536c",
+          "name": "杭州小笼包(王府井店)",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:25.727063+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:25.727063+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "812d8f8e3cef555daf49496548503ef0",
+          "name": "景运门故宫餐厅",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.247166+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.247166+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "366f7eb179d65c6597c5543390fbaa16",
+          "name": "菜团子",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:26.392026+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:26.392026+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "dbb0c58db9cf541d9be346c7c531e584",
+          "name": "全季酒店(北京天安门广场王府井店)",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "49743b1edc78530aaecbc4fde34f27f4",
+          "name": "八达岭长城",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:15.305246+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "4becce3adaac590d84bc0379c9f2bf10",
+          "name": "翠明庄宾馆",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "6c158fbb89645651887a38fff33af982",
+          "name": "八达岭饭店",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.872882+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.872882+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "83b7566b26a859188509409f326b72c5",
+          "name": "馥苑(王府中环)北京首店",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:31.815071+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "5ffd4e269a60524cba88a318586984e0",
+          "name": "全季酒店(北京天安门广场王府井店)",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        }
+      ],
+      "stale": 0,
+      "unknown_age": 0,
+      "scope_mismatch": 0,
+      "missing": 7
+    }
+  },
+  {
+    "id": "xa-budget-3d",
+    "request": {
+      "budget_mode": "active",
+      "party_size": null,
+      "room_count": null,
+      "destination_budget": null,
+      "city": "西安",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-08",
+      "travel_days": 3,
+      "transportation": "公共交通",
+      "accommodation": "舒适型酒店",
+      "daily_start_time": "09:00",
+      "daily_end_time": "20:00",
+      "buffer_minutes": 15,
+      "preferences": [
+        "历史文化"
+      ],
+      "free_text_input": "学生党，预算1500元",
+      "reference_type": "none",
+      "reference_content": "",
+      "reference_mode": "flexible",
+      "reference_sources": [],
+      "reference_candidates": []
+    },
+    "cost_report": {
+      "context": {
+        "party_size": 1,
+        "room_count": 1,
+        "lodging_nights": 2
+      },
+      "assumptions": [
+        "人数未填写，暂按1人试算",
+        "房间数未填写，暂按每晚1间试算"
+      ],
+      "totals": {
+        "attractions": 174.0,
+        "meals": 331.0,
+        "hotels": 0.0,
+        "transport": 48.9
+      },
+      "known_total": 553.9,
+      "unknown_count": 2,
+      "estimated_count": 23,
+      "lines": [
+        {
+          "date": "2026-11-06",
+          "kind": "attractions",
+          "name": "钟鼓楼广场",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 0.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "attractions",
+          "name": "回民街",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 0.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "attractions",
+          "name": "西安城墙",
+          "unit_price": 54.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 54.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "meals",
+          "name": "一分利面馆(回民街店)",
+          "unit_price": 29.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 29.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "meals",
+          "name": "马斌小炒泡馍·大米凉皮",
+          "unit_price": 16.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 16.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.766851+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "meals",
+          "name": "华山国际酒店-自助餐厅",
+          "unit_price": 90.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 90.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:24.303112+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店) → 一分利面馆(回民街店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "一分利面馆(回民街店) → 钟鼓楼广场",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "钟鼓楼广场 → 回民街",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "回民街 → 马斌小炒泡馍·大米凉皮",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "马斌小炒泡馍·大米凉皮 → 西安城墙",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "西安城墙 → 华山国际酒店-自助餐厅",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "transport",
+          "name": "华山国际酒店-自助餐厅 → 柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "attractions",
+          "name": "秦始皇兵马俑博物馆",
+          "unit_price": 120.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 120.0,
+          "status": "estimated",
+          "source": "官网公示成人门票参考，非预订报价",
+          "evidence": {
+            "source_url": "https://www.bmy.com.cn/jingtai/bmyweb/ticketing.html",
+            "scope": "普通成人门票；不含讲解、电瓶车等额外项目；优惠资格另核实",
+            "applies_on": "2026-11-07",
+            "source": "official",
+            "recorded_at": "2026-10-16T14:05:44.967744+00:00",
+            "status": "official_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "麦当劳(西安麦当劳北大街餐厅)",
+          "unit_price": 23.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 23.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "孙光辉老孙家·清真(兵马俑店)",
+          "unit_price": 40.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 40.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:18.260545+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "食咖驿",
+          "unit_price": 13.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 13.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:20.124292+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店) → 麦当劳(西安麦当劳北大街餐厅)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "麦当劳(西安麦当劳北大街餐厅) → 秦始皇兵马俑博物馆",
+          "unit_price": 19.9,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 19.9,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "秦始皇兵马俑博物馆 → 孙光辉老孙家·清真(兵马俑店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "孙光辉老孙家·清真(兵马俑店) → 食咖驿",
+          "unit_price": 4.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 4.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "食咖驿 → 柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "unit_price": 7.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 7.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "attractions",
+          "name": "陕西历史博物馆",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 0.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "attractions",
+          "name": "大唐不夜城",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 0.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "meals",
+          "name": "長安情biangbiang面(钟楼店)",
+          "unit_price": 21.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 21.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "meals",
+          "name": "莉莉延安沾沾(陕西历史博物馆店)",
+          "unit_price": 49.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 49.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:58.192031+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "meals",
+          "name": "锦盛常来尝安美食荟餐厅",
+          "unit_price": 50.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 50.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:58.521737+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店) → 長安情biangbiang面(钟楼店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "長安情biangbiang面(钟楼店) → 陕西历史博物馆",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "陕西历史博物馆 → 莉莉延安沾沾(陕西历史博物馆店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "莉莉延安沾沾(陕西历史博物馆店) → 大唐不夜城",
+          "unit_price": 10.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 10.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "大唐不夜城 → 锦盛常来尝安美食荟餐厅",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "锦盛常来尝安美食荟餐厅 → 柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "hotels",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "间夜",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "hotels",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "间夜",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        }
+      ],
+      "budget": {
+        "limit": 1500.0,
+        "status": "needs_scope"
+      },
+      "exclusions": [
+        "往返目的地的大交通",
+        "购物、个人消费及额外项目",
+        "行程日期外的住宿和额外用餐"
+      ],
+      "notes": [
+        "门票和公共交通按成人参考价计算；儿童、学生等优惠需另核实。",
+        "官网公示门票也只是当前政策参考，单独售票展览、讲解和园内交通等未列项目另计；不代表余票或预订成功。",
+        "住宿按出发日至返程日前一晚计算，最后一天列出的酒店不另算一晚。",
+        "这是已列项目的参考小计，不是预订报价或完整旅行总价。"
+      ]
+    },
+    "fact_report": {
+      "items": [
+        {
+          "date": "2026-11-06",
+          "item_id": "ce6eb522717d55cebb693cd63eeeed1b",
+          "name": "钟鼓楼广场",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:48.788139+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "05d14b77a1e85b4bba4a0b7036f6d4f7",
+          "name": "回民街",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:51.399909+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "2f21265329fd5d70bcf8474739a0ca3f",
+          "name": "西安城墙",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:48.788139+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "314d15990d5859fa8a80dfea526bab17",
+          "name": "一分利面馆(回民街店)",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "a2c0b8bfbbb652b7acf3726cb5caadce",
+          "name": "马斌小炒泡馍·大米凉皮",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.766851+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.766851+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "ea1f516105d25889ab5a68ff4db72528",
+          "name": "华山国际酒店-自助餐厅",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:24.303112+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:24.303112+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-06",
+          "item_id": "7b74580cf6e1574a9a3b345571a4b82b",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "ae7488da1f005c1cb83306dbf50bbb03",
+          "name": "秦始皇兵马俑博物馆",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:47.977540+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source_url": "https://www.bmy.com.cn/jingtai/bmyweb/ticketing.html",
+            "scope": "普通成人门票；不含讲解、电瓶车等额外项目；优惠资格另核实",
+            "applies_on": "2026-11-07",
+            "source": "official",
+            "recorded_at": "2026-10-16T14:05:44.967744+00:00",
+            "status": "official_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "dc53536be30358518209f5dae273dce5",
+          "name": "麦当劳(西安麦当劳北大街餐厅)",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "5c027747af425f3ba6444ef50f67b1d2",
+          "name": "孙光辉老孙家·清真(兵马俑店)",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:18.260545+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:18.260545+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "bba00f85fb6b5c34a5362544f058be31",
+          "name": "食咖驿",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:20.124292+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:52:20.124292+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "25b14fea14f858e8a9891b7090b576d4",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "daddede959335964a6824a78a23e78bf",
+          "name": "陕西历史博物馆",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:48.300930+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "aa472f80404951919621ce770a34a4c7",
+          "name": "大唐不夜城",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:49.076211+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:52:41.667156+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "eb085c9e45455061a768aa5faf10ce10",
+          "name": "長安情biangbiang面(钟楼店)",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:56.475747+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "0e44780c094558939f67eaed6d499fb2",
+          "name": "莉莉延安沾沾(陕西历史博物馆店)",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:58.192031+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:58.192031+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "efd4c218845e53c4969e1eb220efb865",
+          "name": "锦盛常来尝安美食荟餐厅",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:51:58.521737+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "e3d3e68cb0d3549c884b296f40fc4da4",
+          "name": "柏奥国际酒店(西安回民街钟楼地铁站店)",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        }
+      ],
+      "stale": 0,
+      "unknown_age": 0,
+      "scope_mismatch": 0,
+      "missing": 7
+    }
+  },
+  {
+    "id": "palace-date-changed",
+    "request": {
+      "budget_mode": "active",
+      "party_size": null,
+      "room_count": null,
+      "destination_budget": null,
+      "city": "北京",
+      "start_date": "2026-11-07",
+      "end_date": "2026-11-08",
+      "travel_days": 2,
+      "transportation": "公共交通",
+      "accommodation": "舒适型酒店",
+      "daily_start_time": "09:00",
+      "daily_end_time": "20:00",
+      "buffer_minutes": 15,
+      "preferences": [
+        "历史文化"
+      ],
+      "free_text_input": "第一次去北京，想看经典古迹",
+      "reference_type": "none",
+      "reference_content": "",
+      "reference_mode": "flexible",
+      "reference_sources": [],
+      "reference_candidates": []
+    },
+    "cost_report": {
+      "context": {
+        "party_size": 1,
+        "room_count": 1,
+        "lodging_nights": 1
+      },
+      "assumptions": [
+        "人数未填写，暂按1人试算",
+        "房间数未填写，暂按每晚1间试算"
+      ],
+      "totals": {
+        "attractions": 42.0,
+        "meals": 176.0,
+        "hotels": 0.0,
+        "transport": 38.0
+      },
+      "known_total": 256.0,
+      "unknown_count": 4,
+      "estimated_count": 12,
+      "lines": [
+        {
+          "date": "2026-11-07",
+          "kind": "attractions",
+          "name": "天安门广场",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 0.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "attractions",
+          "name": "故宫博物院",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": null,
+          "status": "unknown",
+          "source": "官网公示成人门票参考，非预订报价",
+          "evidence": {
+            "source": "official",
+            "recorded_at": null,
+            "status": "scope_mismatch",
+            "source_url": "https://www.dpm.org.cn/singles_detail/257830.html",
+            "scope": "成人大门票；珍宝馆、钟表馆等另售项目未计；优惠资格另核实",
+            "applies_on": "2026-11-06"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "attractions",
+          "name": "景山公园",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "杭州小笼包(王府井店)",
+          "unit_price": 23.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 23.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:25.727063+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "景运门故宫餐厅",
+          "unit_price": 63.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 63.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.247166+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "meals",
+          "name": "菜团子",
+          "unit_price": 26.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 26.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:26.392026+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "全季酒店(北京天安门广场王府井店) → 杭州小笼包(王府井店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "杭州小笼包(王府井店) → 天安门广场",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "天安门广场 → 景运门故宫餐厅",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "景运门故宫餐厅 → 故宫博物院",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "故宫博物院 → 景山公园",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "景山公园 → 菜团子",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "transport",
+          "name": "菜团子 → 全季酒店(北京天安门广场王府井店)",
+          "unit_price": 2.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 2.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "attractions",
+          "name": "八达岭长城",
+          "unit_price": 40.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 40.0,
+          "status": "estimated",
+          "source": "模型估算，未核实",
+          "evidence": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "meals",
+          "name": "翠明庄宾馆",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "meals",
+          "name": "八达岭饭店",
+          "unit_price": 64.0,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": 64.0,
+          "status": "estimated",
+          "source": "高德人均参考，未核实",
+          "evidence": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.872882+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "meals",
+          "name": "馥苑(王府中环)北京首店",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "人次",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "全季酒店(北京天安门广场王府井店) → 翠明庄宾馆",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "翠明庄宾馆 → 八达岭饭店",
+          "unit_price": 16.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 16.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "八达岭饭店 → 八达岭长城",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "八达岭长城 → 馥苑(王府中环)北京首店",
+          "unit_price": 16.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 16.0,
+          "status": "estimated",
+          "source": "高德方案成人票价，查询时参考"
+        },
+        {
+          "date": "2026-11-08",
+          "kind": "transport",
+          "name": "馥苑(王府中环)北京首店 → 全季酒店(北京天安门广场王府井店)",
+          "unit_price": 0.0,
+          "quantity": 1,
+          "unit": "人",
+          "amount": 0.0,
+          "status": "confirmed",
+          "source": "步行，无乘车费用"
+        },
+        {
+          "date": "2026-11-07",
+          "kind": "hotels",
+          "name": "全季酒店(北京天安门广场王府井店)",
+          "unit_price": null,
+          "quantity": 1,
+          "unit": "间夜",
+          "amount": null,
+          "status": "unknown",
+          "source": "",
+          "evidence": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        }
+      ],
+      "budget": {
+        "limit": null,
+        "status": "not_set"
+      },
+      "exclusions": [
+        "往返目的地的大交通",
+        "购物、个人消费及额外项目",
+        "行程日期外的住宿和额外用餐"
+      ],
+      "notes": [
+        "门票和公共交通按成人参考价计算；儿童、学生等优惠需另核实。",
+        "官网公示门票也只是当前政策参考，单独售票展览、讲解和园内交通等未列项目另计；不代表余票或预订成功。",
+        "住宿按出发日至返程日前一晚计算，最后一天列出的酒店不另算一晚。",
+        "这是已列项目的参考小计，不是预订报价或完整旅行总价。"
+      ]
+    },
+    "fact_report": {
+      "items": [
+        {
+          "date": "2026-11-07",
+          "item_id": "4b4accdc87a45c80b96874068fb3d356",
+          "name": "天安门广场",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:12.210954+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "f9b79042600f581a9ece0b90edaf77a9",
+          "name": "故宫博物院",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:11.867632+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "official",
+            "recorded_at": null,
+            "status": "scope_mismatch",
+            "source_url": "https://www.dpm.org.cn/singles_detail/257830.html",
+            "scope": "成人大门票；珍宝馆、钟表馆等另售项目未计；优惠资格另核实",
+            "applies_on": "2026-11-06"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "3f5fccc8d33b50b6bd1655ddffd837fe",
+          "name": "景山公园",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:15.619404+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "e8eb1e07bcae5b91a171c1e4073f536c",
+          "name": "杭州小笼包(王府井店)",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:25.727063+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:25.727063+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "812d8f8e3cef555daf49496548503ef0",
+          "name": "景运门故宫餐厅",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.247166+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.247166+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "366f7eb179d65c6597c5543390fbaa16",
+          "name": "菜团子",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:26.392026+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:26.392026+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-07",
+          "item_id": "dbb0c58db9cf541d9be346c7c531e584",
+          "name": "全季酒店(北京天安门广场王府井店)",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "49743b1edc78530aaecbc4fde34f27f4",
+          "name": "八达岭长城",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:15.305246+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "model",
+            "recorded_at": "2026-10-16T12:50:33.855899+00:00",
+            "status": "model_estimate"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "4becce3adaac590d84bc0379c9f2bf10",
+          "name": "翠明庄宾馆",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "6c158fbb89645651887a38fff33af982",
+          "name": "八达岭饭店",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.872882+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:22.872882+00:00",
+            "status": "recent_reference"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "83b7566b26a859188509409f326b72c5",
+          "name": "馥苑(王府中环)北京首店",
+          "hours": {
+            "source": "amap",
+            "recorded_at": "2026-10-16T12:50:31.815071+00:00",
+            "status": "recent_reference"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        },
+        {
+          "date": "2026-11-08",
+          "item_id": "5ffd4e269a60524cba88a318586984e0",
+          "name": "全季酒店(北京天安门广场王府井店)",
+          "hours": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          },
+          "price": {
+            "source": null,
+            "recorded_at": null,
+            "status": "missing"
+          }
+        }
+      ],
+      "stale": 0,
+      "unknown_age": 0,
+      "scope_mismatch": 1,
+      "missing": 7
+    }
+  }
+]

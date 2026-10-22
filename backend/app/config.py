@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import List
 from pydantic_settings import BaseSettings
+from pydantic import Field
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -33,6 +34,11 @@ class Settings(BaseSettings):
 
     # 高德地图API配置
     amap_api_key: str = ""
+    amap_route_qps: float = 1.0
+    # Place search/detail share a separate, usually higher, per-account limit.
+    amap_poi_qps: float = 3.0
+    # Weather, district and address geocoding share a conservative metadata lane.
+    amap_metadata_qps: float = 1.0
 
     # Unsplash API配置
     unsplash_access_key: str = ""
@@ -45,6 +51,23 @@ class Settings(BaseSettings):
 
     # 日志配置
     log_level: str = "INFO"
+    planning_max_running: int = Field(default=2, ge=1, le=20)
+    planning_max_pending: int = Field(default=12, ge=1, le=1000)
+    planning_max_pending_per_owner: int = Field(default=2, ge=1, le=50)
+    planning_queue_timeout_seconds: float = Field(default=180, ge=10, le=1800)
+    planning_lease_seconds: float = Field(default=60, ge=10, le=600)
+    planning_run_timeout_seconds: float = Field(default=300, ge=30, le=1800)
+    planning_max_attempts: int = Field(default=3, ge=1, le=10)
+    # Interactive HTTP work; durable planning jobs have their own queue limits.
+    http_interactive_running: int = Field(default=2, ge=1, le=50)
+    http_interactive_per_peer_running: int = Field(default=2, ge=1, le=20)
+    http_interactive_per_peer_minute: int = Field(default=12, ge=1, le=1000)
+    http_interactive_per_minute: int = Field(default=60, ge=1, le=10000)
+    http_lookup_running: int = Field(default=12, ge=1, le=100)
+    http_lookup_per_peer_running: int = Field(default=6, ge=1, le=50)
+    http_lookup_per_peer_minute: int = Field(default=120, ge=1, le=5000)
+    http_lookup_per_minute: int = Field(default=600, ge=1, le=20000)
+    http_request_lease_seconds: float = Field(default=60, ge=10, le=600)
 
     class Config:
         env_file = ".env"

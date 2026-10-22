@@ -1,150 +1,57 @@
-# 智能旅行规划助手 🌍
+# 旅途有方 · 智能旅行助手
 
-基于LangGraph框架构建的智能旅行规划助手,集成高德地图MCP服务,提供个性化的旅行计划生成。
+把自然语言需求和收藏攻略转成可查看、可修改、可恢复的逐日行程。模型选择地点与建议停留，程序用地图证据和时间约束检查安排是否合理。
 
-## ✨ 功能特点
+当前是用于求职展示与实际体验的本地项目。具备完整规划和修改流程，尚未完成公开生产部署验收；未知交通、开放时间、票种或费用会明确提示，不能当作预订保证。
 
-- 🤖 **AI驱动的旅行规划**: 基于LangGraph框架的SimpleAgent,智能生成详细的多日旅程
-- 🗺️ **高德地图集成**: 通过MCP协议接入高德地图服务,支持景点搜索、路线规划、天气查询
-- 🧠 **智能工具调用**: Agent自动调用高德地图MCP工具,获取实时POI、路线和天气信息
-- 🎨 **现代化前端**: Vue3 + TypeScript + Vite,响应式设计,流畅的用户体验
-- 📱 **完整功能**: 包含住宿、交通、餐饮和景点游览时间推荐
+## 主要功能
 
-## 🏗️ 技术栈
+- **规划旅行**：自然语言输入、详细设置、攻略正文/链接/截图来源，以及必去、可选、忽略地点。
+- **阅读路线**：每日卡片、时间线、地点与地图对应、明暗模式和可关闭动效。
+- **按需修改**：景点、餐厅、酒店的编辑与替换，询问助手，方案前后对比，版本保存与撤销。
+- **检查安排**：真实交通、缓冲、三餐、固定预约、可解析营业时间，以及明确的冲突和缺失提示。
+- **准备出行**：费用参考、用户住宿报价、部分官方政策来源、准备清单和导出。
 
-### 后端
-- **框架**: LangGraph 
-- **API**: FastAPI
-- **MCP工具**: amap-mcp-server (高德地图)
-- **LLM**: DeepSeek
+## 核心工程设计
 
-### 前端
-- **框架**: Vue 3 + TypeScript
-- **构建工具**: Vite
-- **UI组件库**: Ant Design Vue
-- **地图服务**: 高德地图 JavaScript API
-- **HTTP客户端**: Axios
+| 问题 | 处理方式 |
+| --- | --- |
+| 模型生成的地点和事实可能不可靠 | 按已查询 POI ID 回填，记录来源和取得时间，未知数据不冒充 0 |
+| 有真实地点仍可能一天走不完 | 程序计算交通、等待、停留、餐饮和营业约束，有界修复后再校验 |
+| 弱网重试、取消或并发编辑 | 稳定任务编号、持久任务、SSE/轮询、执行租约与版本检查 |
+| 重复调用导致延迟和成本 | 缓存、查询合并、共享 QPS、局部 patch 和模型输入投影 |
 
-## 📁 项目结构
+技术栈：Vue 3 / TypeScript / Vite / Ant Design Vue；FastAPI / LangGraph / LangChain / OR-Tools / SQLite；兼容接口模型与高德地图服务。
 
-```
-Trip-planner/
-├── backend/                    # 后端服务
-│   ├── app/
-│   │   ├── agents/            # Agent实现
-│   │   │   └── trip_planner_agent.py
-│   │   ├── api/               # FastAPI路由
-│   │   │   ├── main.py
-│   │   │   └── routes/
-│   │   │       ├── trip.py
-│   │   │       └── map.py
-│   │   ├── services/          # 服务层
-│   │   │   ├── amap_service.py
-│   │   │   └── llm_service.py
-│   │   ├── models/            # 数据模型
-│   │   │   └── schemas.py
-│   │   └── config.py          # 配置管理
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── .gitignore
-├── frontend/                   # 前端应用
-│   ├── src/
-│   │   ├── components/        # Vue组件
-│   │   ├── services/          # API服务
-│   │   ├── types/             # TypeScript类型
-│   │   └── views/             # 页面视图
-│   ├── package.json
-│   └── vite.config.ts
-└── README.md
+## 快速开始
+
+填写后端和前端环境配置；不要覆盖已有 `.env`，不要提交真实密钥。安装与排错详见[运行说明](docs/RUNNING.md)。
+
+后端，在仓库根目录打开 PowerShell：
+
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -X utf8 -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-## 🚀 快速开始
+另开终端启动前端：
 
-### 前提条件
-
-- Python 3.10+
-- Node.js 16+
-- 高德地图API密钥 (Web服务API和Web端(JS API))
-- LLM API密钥 (OpenAI/DeepSeek等)
-
-# ============ 终端 1：后端 ============
-cd d:\Desktop\Trip-planner\backend
-venv\Scripts\activate
-uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
-
-# ============ 终端 2：前端 ============
-cd d:\Desktop\Trip-planner\frontend
+```powershell
+cd frontend
+npm ci
 npm run dev
-
-
-5. 打开浏览器访问 `http://localhost:5173`
-
-## 📝 使用指南
-
-1. 在首页填写旅行信息:
-   - 目的地城市
-   - 旅行日期和天数
-   - 交通方式偏好
-   - 住宿偏好
-   - 旅行风格标签
-
-2. 点击"生成旅行计划"按钮
-
-3. 系统将:
-   - 调用Agent生成初步计划
-   - Agent自动调用高德地图MCP工具搜索景点
-   - Agent获取天气信息和路线规划
-   - 整合所有信息生成完整行程
-
-4. 查看结果:
-   - 每日详细行程
-   - 景点信息与地图标记
-   - 交通路线规划
-   - 天气预报
-   - 餐饮推荐
-
-## 🔧 核心实现
-
-### HelloAgents Agent集成
-
-```python
-from hello_agents import SimpleAgent, HelloAgentsLLM
-from hello_agents.tools import MCPTool
-
-# 创建高德地图MCP工具
-amap_tool = MCPTool(
-    name="amap",
-    server_command=["uvx", "amap-mcp-server"],
-    env={"AMAP_MAPS_API_KEY": "your_api_key"},
-    auto_expand=True
-)
-
-# 创建旅行规划Agent
-agent = SimpleAgent(
-    name="旅行规划助手",
-    llm=HelloAgentsLLM(),
-    system_prompt="你是一个专业的旅行规划助手..."
-)
-
-# 添加工具
-agent.add_tool(amap_tool)
 ```
 
-### MCP工具调用
+打开 `http://127.0.0.1:5173/`。API 文档位于 `http://127.0.0.1:8000/docs`；后端需要能访问已配置的模型和地图服务。
 
-Agent可以自动调用以下高德地图MCP工具:
-- `maps_text_search`: 搜索景点POI
-- `maps_weather`: 查询天气
-- `maps_direction_walking_by_address`: 步行路线规划
-- `maps_direction_driving_by_address`: 驾车路线规划
-- `maps_direction_transit_integrated_by_address`: 公共交通路线规划
+## 文档与验证
 
-## 📄 API文档
+- [文档导航](docs/README.md)：按用途阅读。
+- [架构](docs/ARCHITECTURE.md)：模块、规划链路与存储。
+- [核心设计](docs/CORE_DESIGN.md)：排程、事实证据、费用和可靠性。
+- [评测](docs/EVALUATION.md)：测试命令、真实样本与测量边界。
+- [当前状态](docs/STATUS.md)：已实现能力、求职演示重点和待办。
 
-启动后端服务后,访问 `http://localhost:8000/docs` 查看完整的API文档。
-
-主要端点:
-- `POST /api/trip/plan` - 生成旅行计划
-- `GET /api/map/poi` - 搜索POI
-- `GET /api/map/weather` - 查询天气
-- `POST /api/map/route` - 规划路线
+历史方案、阶段验收和旧截图保留在[归档](docs/archive/README.md)。历史测试数量、单次生成耗时和离线回放均不作为当前整体准确率、生产 p95 或预订可用性的保证。

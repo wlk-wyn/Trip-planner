@@ -1,0 +1,99 @@
+{
+  "scope": "public same-snapshot repair and one new 7d generation; not production accuracy or latency",
+  "source_report": "D:\\Desktop\\Trip-planner\\backend\\eval\\results\\load-20261017-180219.json",
+  "source_sha256": "102753b324aa3e5f1e6b6aabfffc4a8dcf881dac8eedd7d6cedb60daf6d45b93",
+  "baseline_replay": "eval/results/suburban-replay-20261017-181712.json",
+  "final_replay": "eval\\results\\suburban-replay-20261017-183030.json",
+  "final_sha256": "10c09aef102f9da9bf203a27b06553b790258399d28d90e97ac034ff000adfa5",
+  "final_reference_checks_passed_current_rules": true,
+  "unchanged_day_indices": [
+    1,
+    2,
+    3,
+    5,
+    6,
+    7
+  ],
+  "old_attractions": [
+    [
+      "八达岭长城",
+      150
+    ]
+  ],
+  "new_attractions": [
+    [
+      "中国铁道博物馆正阳门馆",
+      150
+    ]
+  ],
+  "final_day_items": [
+    {
+      "id": "e42cbaeadd0d533f948cbb58d76147b6-start",
+      "kind": "hotel",
+      "name": "北京天安门广场前门大街美居酒店",
+      "duration_minutes": 0,
+      "start_time": "09:00",
+      "end_time": "09:00",
+      "fixed": false
+    },
+    {
+      "id": "60d6452c5d005d23bd9df0b710c893c6",
+      "kind": "meal",
+      "name": "门框卤煮(总店)",
+      "duration_minutes": 30,
+      "start_time": "09:17",
+      "end_time": "09:47",
+      "fixed": false
+    },
+    {
+      "id": "a8941c74145c528b918b65f546384766",
+      "kind": "attraction",
+      "name": "中国铁道博物馆正阳门馆",
+      "duration_minutes": 150,
+      "start_time": "10:14",
+      "end_time": "12:44",
+      "fixed": false
+    },
+    {
+      "id": "71a1156280a75ec2a2ae3cec760adc50",
+      "kind": "meal",
+      "name": "南门铜锅涮肉(前门总店)",
+      "duration_minutes": 60,
+      "start_time": "13:00",
+      "end_time": "14:00",
+      "fixed": false
+    },
+    {
+      "id": "4307dae043a65067a5c4de868b830e61",
+      "kind": "meal",
+      "name": "金宅门烤鸭店(前门东大街店)",
+      "duration_minutes": 60,
+      "start_time": "17:00",
+      "end_time": "18:00",
+      "fixed": false
+    },
+    {
+      "id": "e42cbaeadd0d533f948cbb58d76147b6-end",
+      "kind": "hotel",
+      "name": "北京天安门广场前门大街美居酒店",
+      "duration_minutes": 0,
+      "start_time": "18:31",
+      "end_time": "18:31",
+      "fixed": false
+    }
+  ],
+  "new_generation_report": "eval\\results\\load-20261017-182610.json",
+  "new_generation_seconds": 127.2,
+  "new_generation_reference_passed_current_rules": true,
+  "rejected_intermediate_experiments": [
+    "suburban-replay-20261017-182420.json",
+    "suburban-replay-20261017-182558.json",
+    "suburban-replay-20261017-182749.json"
+  ],
+  "tests": {
+    "backend": 368,
+    "frontend": 37,
+    "build": "passed",
+    "browser": "public fixture day4 adjustment notes, normal meals and return time; no console errors"
+  }
+}
