@@ -1,0 +1,35 @@
+name: Manual demo container acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  demo-containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Prepare disposable configuration (no real credentials)
+        run: |
+          mkdir -p deploy/secrets
+          docker run --rm httpd:2.4-alpine htpasswd -nbB demo-ci ci-only-password > deploy/secrets/htpasswd
+          chmod 644 deploy/secrets/htpasswd
+          printf 'AMAP_API_KEY=ci-placeholder\nLLM_API_KEY=ci-placeholder\n' > backend/.env
+          printf 'VITE_AMAP_WEB_JS_KEY=ci-placeholder\n' > deploy/.env.ci
+      - name: Validate and build
+        run: |
+          docker compose --env-file deploy/.env.ci -f compose.demo.yml config --quiet
+          docker compose --env-file deploy/.env.ci -f compose.demo.yml build
+      - name: Start and verify access boundary, readiness and SPA refresh
+        run: |
+          docker compose --env-file deploy/.env.ci -f compose.demo.yml up -d --wait --wait-timeout 120
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/trips)" = 401
+          curl --fail --user demo-ci:ci-only-password http://127.0.0.1:8080/ready
+          curl --fail --user demo-ci:ci-only-password http://127.0.0.1:8080/result | grep 'id="app"'
+          docker compose --env-file deploy/.env.ci -f compose.demo.yml exec -T api python /app/backup-trips.py --source /app/var/trips.sqlite3 --destination /tmp/ci-backup.sqlite3
+      - name: Clean up disposable CI data
+        if: always()
+        run: docker compose --env-file deploy/.env.ci -f compose.demo.yml down --volumes

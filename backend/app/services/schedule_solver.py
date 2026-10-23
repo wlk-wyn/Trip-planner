@@ -42,20 +42,25 @@ def solve_order(stops, edges, start, end, buffer, seconds=2, visit_date=None):
     for i, stop in enumerate(stops):
         idx = manager.NodeToIndex(i)
         dimension.CumulVar(idx).SetRange(start, end-stop["duration"])
+        entry = stop.get('entry_window')
+        earliest = max(start, minutes(entry.start)) if entry else start
+        latest = min(end-stop['duration'], minutes(entry.end)) if entry else end-stop['duration']
+        if earliest > latest: return None
+        dimension.CumulVar(idx).SetRange(earliest, latest)
         if stop["fixed"]:
             appointment = minutes(stop["fixed"])
-            if appointment < start or appointment+stop["duration"] > end: return None
+            if not earliest <= appointment <= latest: return None
             dimension.CumulVar(idx).SetRange(appointment, appointment)
         if visit_date and stop["kind"] != "hotel":
             rule = parse_place_hours(stop["place"], visit_date)
             if rule.closed or rule.outside_weekday:
                 return None
             if rule.windows:
-                allowed = sorted({t for a, b in rule.windows for t in range(max(start, a), min(end, b) - stop["duration"] + 1)
+                allowed = sorted({t for a, b in rule.windows for t in range(max(earliest, a), min(latest, b-stop['duration']) + 1)
                                   if rule.last_admission is None or t < rule.last_admission})
                 if not allowed or (stop["fixed"] and appointment not in allowed):
                     return None
-                dimension.CumulVar(idx).SetValues(allowed)
+                dimension.CumulVar(idx).SetValues([appointment] if stop['fixed'] else allowed)
         if stop["place"].locked:
             positions.CumulVar(idx).SetValue(i+1)
         slot = getattr(stop["place"], "type", "") if stop["kind"] == "meal" else ""

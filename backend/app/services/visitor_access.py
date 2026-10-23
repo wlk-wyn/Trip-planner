@@ -90,12 +90,13 @@ def candidate_reference(city, poi):
                 message=policy['message'] if fresh else '规则参考已过期，需查官方当前政策；不得据此断言可入内。')
 
 
-def reminder_id(day, place, policy=None):
+def reminder_id(day, place, policy=None, booking=None):
     # A different venue, date or fixed slot must not inherit a checked box.
     payload = [day.date, place.poi_id, place.name, place.address,
                place.location.model_dump() if place.location else None,
-               place.fixed_start_time, policy['key'] if policy else None,
-               policy.get('reviewed_on',REVIEWED_ON.isoformat()) if policy else None]
+               place.fixed_start_time, place.entry_window.model_dump() if place.entry_window else None, policy['key'] if policy else None,
+               policy.get('reviewed_on',REVIEWED_ON.isoformat()) if policy else None,
+               [booking.id, booking.recorded_at] if booking else None]
     return sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:32]
 
 
@@ -108,11 +109,13 @@ def visit_reminders(plan, *, now=None):
     reminders = []
     for day in plan.days:
         for place in day.attractions:
+            from .ticket_bookings import active_booking
+            booking = active_booking(plan, day, place)
             policy = matching_policy(plan.city, place) or matching_park(plan.city,place)
             hint = _booking_hint(place)
-            if not policy and not hint and not place.fixed_start_time:
+            if not policy and not hint and not place.has_time_constraint and not booking:
                 continue
-            item = dict(id=reminder_id(day, place, policy), date=day.date, day_index=day.day_index,
+            item = dict(id=reminder_id(day, place, policy, booking), date=day.date, day_index=day.day_index,
                         name=place.name, kind='likely_booking', confirm_by=None,
                         booking_status='unverified', booking_opens_at=None,
                         policy_source_url=None, policy_reviewed_on=None,
@@ -127,12 +130,17 @@ def visit_reminders(plan, *, now=None):
                 if fresh and policy['opens_days'] is not None:
                     opening_day = date.fromisoformat(day.date) - timedelta(days=policy['opens_days'])
                     item['booking_opens_at'] = f"{opening_day}T{policy['opens_time']}:00+08:00"
-            elif place.fixed_start_time:
+            elif place.has_time_constraint:
                 item.update(kind='appointment', message='已设置固定游览时间，请核对是否需要预约及是否已成功；设置时间不等于订票。')
             else:
                 item['message'] = '该地点的入内范围、预约要求与放票时间尚未核实，请查看官方渠道。'
             if place.fixed_start_time:
                 item['message'] += f' 行程固定时间为 {place.fixed_start_time}，预约成功情况仍未核实。'
+            if place.entry_window:
+                item['message'] += f' 用户录入的入场时段为 {place.entry_window.start}—{place.entry_window.end}，预约成功情况仍未核实。'
+            if booking:
+                item['booking_status'] = 'user_recorded'
+                item['message'] += f' 你已录入「{booking.ticket_name}」{booking.participants}人；系统未核验平台订单，入场时请以有效凭证为准。'
             if policy and policy['key'] == 'palace' and day.date == today.isoformat():
                 item['message'] += ' 行程为今天，请先核对是否已持有效预约。'
             reminders.append(item)

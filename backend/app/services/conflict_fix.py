@@ -33,7 +33,7 @@ def _required_names(request) -> set[str]:
 
 def _movable(day, request):
     required = _required_names(request)
-    return [a for a in day.attractions if not a.locked and not a.fixed_start_time and normalized(a.name) not in required]
+    return [a for a in day.attractions if not a.locked and not a.has_time_constraint and normalized(a.name) not in required]
 
 
 async def _check(plan, day, request, validator, original):

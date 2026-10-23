@@ -1,0 +1,58 @@
+name: trip-planner-demo
+services:
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.backend
+    env_file:
+      - ${BACKEND_ENV_FILE:-./backend/.env}
+    environment:
+      PLANNING_MAX_RUNNING: "1"
+      PLANNING_MAX_PENDING: "3"
+      PLANNING_MAX_PENDING_PER_OWNER: "1"
+      HTTP_INTERACTIVE_RUNNING: "1"
+      HTTP_LOOKUP_RUNNING: "2"
+      AMAP_ROUTE_QPS: "1"
+      AMAP_POI_QPS: "3"
+      CORS_ORIGINS: ${DEMO_ORIGIN:-http://localhost:8080}
+    volumes:
+      - trip-data:/app/var
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    stop_grace_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        VITE_AMAP_WEB_JS_KEY: ${VITE_AMAP_WEB_JS_KEY:?Set the browser JS map key in deploy/.env}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8080}:8080"
+    secrets:
+      - demo_htpasswd
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  trip-data:
+secrets:
+  demo_htpasswd:
+    file: ./deploy/secrets/htpasswd

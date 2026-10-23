@@ -67,7 +67,7 @@ def density_rows(plan,request):
     if (not 1<=len(plan.days)<=14 or any(not 1<=len(d.attractions)<=6 for d in plan.days)
             or has_day_instructions(request) or explicit_duration_instructions(text)
             or explicit_meal_times(request) or request.reference_candidates
-            or any(p.locked or p.fixed_start_time or not p.poi_id for p in places)
+            or any(p.locked or p.has_time_constraint or not p.poi_id for p in places)
             or len({p.poi_id for p in places})!=len(places)
             or len({p.item_id for p in places})!=len(places)
             or protected_meal_ids(plan,request)

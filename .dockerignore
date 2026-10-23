@@ -1,0 +1,15 @@
+.git
+.agents
+.codex
+**/.env
+**/.env.*
+**/venv
+**/.venv
+**/node_modules
+**/var
+**/__pycache__
+**/dist
+**/*.log
+**/*.sqlite*
+deploy/secrets
+docs/archive

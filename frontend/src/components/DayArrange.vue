@@ -6,14 +6,14 @@
     </header>
     <ol>
       <li v-for="(place, index) in day.attractions" :key="place.item_id || index"
-          :class="{ locked: place.locked || !!place.fixed_start_time, dragging: dragIndex === index, over: overIndex === index && dragIndex !== index }"
+          :class="{ locked: place.locked || !!place.fixed_start_time || !!place.entry_window, dragging: dragIndex === index, over: overIndex === index && dragIndex !== index }"
           :draggable="!isFixed(place)"
           @dragstart="onDragStart($event, index)" @dragend="reset"
           @dragover.prevent="overIndex = index" @dragleave="overIndex === index && (overIndex = -1)"
           @drop.prevent="onDrop(index)">
         <span class="handle" aria-hidden="true">{{ isFixed(place) ? '📌' : '⋮⋮' }}</span>
         <span class="order">{{ index + 1 }}</span>
-        <span class="name">{{ place.name }}<small v-if="place.fixed_start_time"> · 预约 {{ place.fixed_start_time }}</small></span>
+        <span class="name">{{ place.name }}<small v-if="place.entry_window"> · 入场 {{ place.entry_window.start }}—{{ place.entry_window.end }}</small><small v-else-if="place.fixed_start_time"> · 预约 {{ place.fixed_start_time }}</small></span>
         <span class="actions">
           <button type="button" :disabled="index === 0 || isFixed(place) || isFixed(day.attractions[index - 1])" :aria-label="`上移${place.name}`" @click="emit('reorder', index, index - 1)">↑</button>
           <button type="button" :disabled="index === day.attractions.length - 1 || isFixed(place) || isFixed(day.attractions[index + 1])" :aria-label="`下移${place.name}`" @click="emit('reorder', index, index + 1)">↓</button>
@@ -21,7 +21,7 @@
             <option value="" disabled>移到…</option>
             <option v-for="target in dayCount" :key="target" :value="target - 1" :disabled="target - 1 === dayIndex">第 {{ target }} 天</option>
           </select>
-          <button type="button" class="lock" :aria-pressed="!!place.locked" :disabled="!!place.fixed_start_time" @click="emit('toggle-lock', index)">{{ place.locked ? '已锁定' : '锁定' }}</button>
+          <button type="button" class="lock" :aria-pressed="!!place.locked" :disabled="!!place.fixed_start_time || !!place.entry_window" @click="emit('toggle-lock', index)">{{ place.locked ? '已锁定' : '锁定' }}</button>
         </span>
       </li>
     </ol>
@@ -47,7 +47,7 @@ const emit = defineEmits<{
 }>()
 const dragIndex = ref(-1)
 const overIndex = ref(-1)
-const isFixed = (place?: Attraction) => !!place && (!!place.locked || !!place.fixed_start_time)
+const isFixed = (place?: Attraction) => !!place && (!!place.locked || !!place.fixed_start_time || !!place.entry_window)
 
 function onDragStart(event: DragEvent, index: number) {
   dragIndex.value = index

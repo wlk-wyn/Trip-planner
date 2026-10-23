@@ -64,7 +64,7 @@ def evening_issues(plan, request):
 
 def _editable(day):
     return not (day.visit_order or day.planned_start_times
-                or any(p.locked or p.fixed_start_time for p in day.attractions)
+                or any(p.locked or p.has_time_constraint for p in day.attractions)
                 or any(p.locked for p in day.meals)
                 or (day.hotel and day.hotel.locked))
 
@@ -97,7 +97,7 @@ def prepare_evening(plan, request, *, with_meals=False, reapply=False):
     result = plan.model_copy(deep=True)
     for day in result.days:
         if (not _editable(day) and not reapply) or (reapply and (
-                any(p.locked or p.fixed_start_time for p in day.attractions)
+                any(p.locked or p.has_time_constraint for p in day.attractions)
                 or any(m.locked for m in day.meals) or (day.hotel and day.hotel.locked))):
             continue
         # Keep the same automatic night anchor across reorders. A different

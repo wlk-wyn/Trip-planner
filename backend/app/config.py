@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import List
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, SecretStr
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     amap_poi_qps: float = 3.0
     # Weather, district and address geocoding share a conservative metadata lane.
     amap_metadata_qps: float = 1.0
+
+    # Optional, server-side only. Never included in health/config responses.
+    meituan_travel_token: SecretStr = Field(default=SecretStr(''), repr=False)
 
     # Unsplash API配置
     unsplash_access_key: str = ""

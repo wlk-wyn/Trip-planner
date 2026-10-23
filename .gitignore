@@ -57,3 +57,5 @@ htmlcov/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+deploy/secrets/*
+!deploy/secrets/.gitkeep

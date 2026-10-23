@@ -243,7 +243,8 @@ def stops_for_day(day):
     stops = []
     def add(kind, place, duration, identity, fixed=None):
         stable_id = place.item_id + ("-start" if identity == "hotel-start" else "-end" if identity == "hotel-end" else "")
-        stops.append({"id": stable_id, "kind": kind, "place": place, "duration": duration, "fixed": fixed})
+        stops.append({"id": stable_id, "kind": kind, "place": place, "duration": duration, "fixed": fixed,
+                      "entry_window": getattr(place, 'entry_window', None)})
     if day.hotel and day.hotel.location:
         add("hotel", day.hotel, 0, "hotel-start")
     meals = {meal.type: meal for meal in day.meals if (meal.restaurant or meal.name).strip()}
@@ -344,6 +345,10 @@ def build_schedule(day, stops, segments, request):
                 minimum += target-current
                 current=target
         fixed = stop["fixed"]
+        entry = stop.get('entry_window')
+        if entry and current < minutes(entry.start):
+            minimum += minutes(entry.start) - current
+            current = minutes(entry.start)
         if fixed:
             target = minutes(fixed)
             if current > target:
@@ -375,11 +380,15 @@ def build_schedule(day, stops, segments, request):
                     hours_warnings.append(f"{name}：{rule.reason}")
             if certain and rule.last_admission is not None and current >= rule.last_admission:
                 conflicts.append(f'{name}的到达时间已到或晚于登记停止入馆时间，请调整顺序或地点')
+        if entry and current > minutes(entry.end):
+            conflicts.append(f'{display_name(stop)}最晚{entry.end}入场，按已知时间至少晚到{current - minutes(entry.end)}分钟')
+        if entry and (minutes(entry.end) < minutes(start) or minutes(entry.start) + stop['duration'] > end_minutes):
+            conflicts.append(f'{display_name(stop)}的入场时段与当天可用时间不兼容')
         item_start = clock(current) if certain else fixed
         current += stop["duration"]
         items.append(ScheduleItem(id=stop["id"], kind=stop["kind"], name=display_name(stop),
                                   duration_minutes=stop["duration"], start_time=item_start,
-                                  end_time=clock(current) if certain else None, fixed=bool(fixed)))
+                                  end_time=clock(current) if certain else None, fixed=bool(fixed or entry)))
     available = max(0, end_minutes - minutes(start))
     if current > end_minutes:
         conflicts.append(f"当天至少超出可用时间{current - end_minutes}分钟；建议减少可选地点或延长时间")

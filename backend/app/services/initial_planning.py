@@ -91,7 +91,7 @@ def prepare_regions(plan, request):
         return result, []
     # A named meal, fixed visit or retained visit anchors its whole day.
     editable = [i for i, day in enumerate(result.days) if 0 < len(day.attractions) <= 6 and not day.meals
-                and not any(p.locked or p.fixed_start_time for p in day.attractions)
+                and not any(p.locked or p.has_time_constraint for p in day.attractions)
                 and not day.visit_order and not day.planned_start_times]
     before = [[p.item_id for p in d.attractions] for d in result.days]
     for i in editable:
@@ -161,7 +161,7 @@ async def fit_suggested_durations(plan, request, validator, progress=None, *, al
             continue
         candidates = []
         for place in day.attractions:
-            if place.locked or place.fixed_start_time or normalized(place.name) in required or (place.poi_id and place.poi_id in required_ids):
+            if place.locked or place.has_time_constraint or normalized(place.name) in required or (place.poi_id and place.poi_id in required_ids):
                 continue
             floor = 90 if any(k in (place.category or '') + place.name for k in ('博物', '美术馆', '科技馆', '展览')) else 60
             spare = min(place.visit_duration // 4, max(0, place.visit_duration-floor))
@@ -237,7 +237,7 @@ async def fit_optional_visits(plan, request, validator, progress=None, *, max_ch
         anchor_id = max(day.attractions, key=lambda p: p.visit_duration).item_id
         for place in day.attractions:
             aliases = {normalized(place.name), normalized(re.sub(r'[（(].*?[)）]', '', place.name))}
-            if (place.item_id == anchor_id or place.locked or place.fixed_start_time or place.item_id in day.planned_start_times
+            if (place.item_id == anchor_id or place.locked or place.has_time_constraint or place.item_id in day.planned_start_times
                     or place.poi_id in required_ids or aliases & required_names
                     or any(len(alias) >= 2 and alias in named for alias in aliases)):
                 continue

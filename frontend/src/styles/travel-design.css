@@ -105,6 +105,7 @@
 #app .home-redesign .idea-send.ant-btn:not(:disabled):hover { background: #0077ed; }
 #app .home-redesign .idea-send.ant-btn:disabled { background: var(--color-border); color: var(--color-muted); }
 #app .home-redesign .trip-quick-fields .ant-input, #app .home-redesign .trip-quick-fields .ant-picker { border-radius: 12px; }
+#app .home-redesign .scene-help { margin: 12px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.7; }
 
 @media(min-width:1024px) {
   #app .travel-redesign .result-aside { margin-top: 28px; }

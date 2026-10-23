@@ -36,6 +36,7 @@ export interface Attraction {
   cost_source?: string
   open_hours?: string | null
   fixed_start_time?: string | null
+  entry_window?: { start: string; end: string } | null
 }
 
 export interface Meal {
@@ -140,6 +141,7 @@ export interface WeatherInfo {
 }
 
 export interface TripPlan {
+  ticket_bookings?: TicketBooking[]
   city: string
   start_date: string
   end_date: string
@@ -220,6 +222,11 @@ export interface TripCostContext {
   room_count: number | null
   destination_budget: number | null
 }
+export interface TicketBooking {
+  id: string; day_date: string; item_id: string; place_name: string; ticket_name: string
+  participants: number; paid_total: number; refunded_total: number; status: 'recorded' | 'cancelled'
+  source_label: string; recorded_at: string; fixed_start_time?: string | null; entry_window?: { start: string; end: string } | null
+}
 export interface CostReport {
   lodging_allowance?: { remaining_reference_budget: number; unpriced_room_nights: number; average_ceiling_per_room_night: number; already_over_reference: boolean; scope: string } | null
   unknown_hotel_nights?: number
@@ -231,7 +238,7 @@ export interface CostReport {
   known_total: number
   unknown_count: number
   estimated_count: number
-  lines: { date: string; kind: string; name: string; unit_price: number | null; quantity: number; unit: string; amount: number | null; status: string; source: string; evidence?: FactState; hotel_item_id?: string; quote?: HotelNightQuote }[]
+  lines: { date: string; kind: string; name: string; unit_price: number | null; quantity: number; unit: string; amount: number | null; status: string; source: string; evidence?: FactState; hotel_item_id?: string; quote?: HotelNightQuote; booking_id?: string; booking_status?: string; booking_participants?: number; paid_total?: number; refunded_total?: number }[]
   budget: { limit: number | null; status: 'deferred' | 'not_set' | 'needs_context' | 'needs_scope' | 'over_reference' | 'incomplete' | 'within_listed_reference' }
   exclusions: string[]
   notes: string[]
@@ -423,7 +430,7 @@ export interface VisitReminder {
   kind: 'appointment' | 'likely_booking' | 'official_reference'
   confirm_by: null
   message: string
-  booking_status: 'unverified'
+  booking_status: 'unverified' | 'user_recorded'
   booking_opens_at: string | null
   policy_source_url: string | null
   policy_reviewed_on: string | null

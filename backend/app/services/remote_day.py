@@ -28,7 +28,7 @@ def _protected(place,day,request,text):
         if word in place.name:aliases.add(word)
     short=re.sub(r'(风景名胜区|风景区|景区|博物馆|公园|长城)$','',place.name)
     if len(short)>=2:aliases.add(normalized(short))
-    return (place.locked or place.fixed_start_time or place.cost_status=='confirmed'
+    return (place.locked or place.has_time_constraint or place.cost_status=='confirmed'
         or place.item_id in day.planned_start_times
         or any(alias and len(alias)>=2 and alias in text for alias in aliases)
         or any(c.priority=='required' and ((c.place and c.place.poi_id and c.place.poi_id==place.poi_id)
@@ -72,7 +72,7 @@ async def repair_remote_day(plan,request,validator,align_meals,progress=None):
             or day.schedule.status!='conflict' or not day.schedule.conflicts
             or any('超出可用时间' not in reason for reason in day.schedule.conflicts)
             or any(s.status!='verified' or s.duration_minutes is None for s in day.schedule.segments)
-            or day.hotel.locked or any(p.locked or p.fixed_start_time for p in day.attractions)):
+            or day.hotel.locked or any(p.locked or p.has_time_constraint for p in day.attractions)):
             continue
         protected=protected_meal_ids(result,request)
         if any(m.item_id in protected for m in day.meals if m.type in {'lunch','dinner'}):continue

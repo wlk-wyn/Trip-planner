@@ -80,7 +80,7 @@ async def repair_meal_timing(plan, request, validator, progress=None, *, allow_d
     for index in range(len(result.days)):
         day = result.days[index]
         if (not day.schedule or check_integrity(day, request)
-                or any(p.locked or p.fixed_start_time for p in day.attractions)
+                or any(p.locked or p.has_time_constraint for p in day.attractions)
                 or any(m.locked for m in day.meals) or (day.hotel and day.hotel.locked)):
             continue
         problems = meal_timing_issues(result.model_copy(update={'days': [day]}), request)
@@ -203,7 +203,7 @@ def fit_meal_durations(plan, request):
             break
         if (not day.schedule or day.schedule.status != 'feasible' or day.schedule.conflicts or check_integrity(day, request)
                 or any(s.status != 'verified' or s.duration_minutes is None for s in day.schedule.segments)
-                or any(p.locked or getattr(p, 'fixed_start_time', None) for p in [*day.attractions, *day.meals, *([day.hotel] if day.hotel else [])])):
+                or any(p.locked or getattr(p, 'has_time_constraint', False) for p in [*day.attractions, *day.meals, *([day.hotel] if day.hotel else [])])):
             continue
         problems = meal_timing_issues(result.model_copy(update={'days': [day]}), request)
         if not problems:

@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONUTF8=1 XDG_CACHE_HOME=/tmp/cache
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tesseract-ocr tesseract-ocr-chi-sim \
+    && rm -rf /var/lib/apt/lists/*
+COPY backend/requirements.txt backend/constraints-demo.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -c constraints-demo.txt
+RUN useradd --uid 10001 --create-home traveler && mkdir -p /app/var && chown traveler:traveler /app/var
+COPY backend/app ./app
+COPY scripts/backup-trips.py /app/backup-trips.py
+USER traveler
+EXPOSE 8000
+CMD ["python", "-m", "uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

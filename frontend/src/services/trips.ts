@@ -20,6 +20,21 @@ async function request<T>(method: string, path: string, data?: unknown, timeout?
 }
 export const listTrips = () => request<SavedTripSummary[]>('GET', '')
 export const readTrip = (id: string) => request<SavedTrip>('GET', '/' + encodeURIComponent(id))
+export const readAdmissionGuide = (id: string, version: number, dayDate: string, itemId: string, visitDate: string) => request<import('@/types/admission').AdmissionGuideResult>('GET', `/${encodeURIComponent(id)}/admission-guide?${new URLSearchParams({ version: String(version), day_date: dayDate, item_id: itemId, visit_date: visitDate })}`)
+export interface TicketQueryResult { content: string; source: 'meituan'; queried_at: string; cached: boolean; version: number; item_id: string; name: string; visit_date: string }
+export const queryTickets = (id: string, version: number, dayDate: string, itemId: string, visitDate: string) => request<TicketQueryResult>('POST', `/${encodeURIComponent(id)}/ticket-query`, { base_version: version, day_date: dayDate, item_id: itemId, visit_date: visitDate }, 145000)
+export interface EntryTimingInput { base_version: number; day_date: string; item_id: string; fixed_start_time: string | null; entry_window: { start: string; end: string } | null; choice?: 'keep' | 'earlier' }
+export interface EntryPreview { version: number; item_id: string; day: TripPlan['days'][number]; earlier_day: TripPlan['days'][number] | null }
+export const previewEntry = (id: string, input: EntryTimingInput) => request<EntryPreview>('POST', `/${encodeURIComponent(id)}/entry-preview`, input, 15000)
+export const saveEntryTiming = (id: string, input: EntryTimingInput) => request<SavedTrip>('POST', `/${encodeURIComponent(id)}/entry-timing`, input, 15000)
+export interface EntryOption { id: 'reorder-1' | 'reorder-2' | 'move-flex'; title: string; detail: string; status: 'feasible' | 'conflict' | 'unverified'; days: TripPlan['days']; conflicts: string[]; warnings: string[] }
+export const queryEntryOptions = (id: string, input: EntryTimingInput, allowCrossDay: boolean) => request<{ version: number; item_id: string; day_date: string; options: EntryOption[] }>('POST', `/${encodeURIComponent(id)}/entry-options`, { ...input, allow_cross_day: allowCrossDay }, 35000)
+export const applyEntryOption = (id: string, input: EntryTimingInput, allowCrossDay: boolean, selectionId: string) => request<SavedTrip>('POST', `/${encodeURIComponent(id)}/entry-option`, { ...input, allow_cross_day: allowCrossDay, selection_id: selectionId }, 35000)
+export interface BookingInput { base_version: number; booking_id?: string; day_date: string; item_id: string; ticket_name: string; participants: number; paid_total: number; source_label: string }
+export interface BookingPreview { version: number; item_id: string; day_date: string; before_total: number; after_total: number; cost_report: import('@/types').CostReport }
+export const previewBooking = (id: string, input: BookingInput) => request<BookingPreview>('POST', `/${encodeURIComponent(id)}/ticket-booking-preview`, input, 15000)
+export const saveBooking = (id: string, input: BookingInput) => request<SavedTrip>('POST', `/${encodeURIComponent(id)}/ticket-booking`, input, 15000)
+export const cancelBooking = (id: string, version: number, bookingId: string, refundedTotal: number, clearTime: boolean) => request<SavedTrip>('POST', `/${encodeURIComponent(id)}/ticket-booking-cancel`, { base_version: version, booking_id: bookingId, refunded_total: refundedTotal, clear_time: clearTime }, 15000)
 export const createTrip = (plan: TripPlan, original: TripFormData, chat: ChatTurn[] = []) => request<SavedTrip>('POST', '', { plan, request: original, chat })
 export const commitTrip = (id: string, version: number, plan: TripPlan, origin: string) => request<SavedTrip>('POST', `/${id}/versions`, { plan, base_version: version, origin })
 export const tripVersions = (id: string) => request<TripVersion[]>('GET', `/${id}/versions`)

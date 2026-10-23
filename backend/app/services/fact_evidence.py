@@ -97,6 +97,8 @@ def fact_report(plan, now=None):
 
 def reconcile_manual_facts(plan, previous):
     """Keep server evidence only for identical fields on the identical visit."""
+    from .ticket_bookings import preserve_bookings
+    preserve_bookings(plan, previous)
     # There is no manual forecast editor: posted weather cannot create supplier evidence.
     plan.weather_info=[item.model_copy(deep=True) for item in previous.weather_info]
     old = {(day.date, p.item_id): p for day in previous.days for p in [*day.attractions, *day.meals, *([day.hotel] if day.hotel else [])]}

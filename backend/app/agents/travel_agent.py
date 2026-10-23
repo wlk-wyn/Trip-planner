@@ -134,7 +134,7 @@ def _draft_outline(plan: TripPlan, days: set[int]) -> str:
     for index in sorted(days):
         day = plan.days[index]
         rows.append({"date": day.date, "planned_start_times": day.planned_start_times, "attractions": [
-            {"item_id": a.item_id, "name": a.name, "visit_duration": a.visit_duration, "locked": a.locked, "fixed_start_time": a.fixed_start_time}
+            {"item_id": a.item_id, "name": a.name, "visit_duration": a.visit_duration, "locked": a.locked, "fixed_start_time": a.fixed_start_time, "entry_window": a.entry_window.model_dump() if a.entry_window else None}
             for a in day.attractions]})
     return json.dumps(rows, ensure_ascii=False)
 
@@ -608,6 +608,8 @@ reorder 用 order=[该类全部 item_id]；update_day 可填 start_time/end_time
                 plan.adjustment_notes=list(current_plan.adjustment_notes) if current_plan else []
                 from ..services.hotel_quotes import retain_hotel_quotes
                 retain_hotel_quotes(plan,current_plan)
+                from ..services.ticket_bookings import preserve_bookings
+                preserve_bookings(plan, current_plan, protect=False)
                 if (plan.city != request.city or plan.start_date != request.start_date
                         or plan.end_date != request.end_date):
                     raise ValueError("不能擅自改变目的地或出行日期")
@@ -653,8 +655,8 @@ reorder 用 order=[该类全部 item_id]；update_day 可填 start_time/end_time
                         if not previous:
                             continue
                         for fixed_place in previous.attractions:
-                            if fixed_place.fixed_start_time and not any(p.name == fixed_place.name and p.location == fixed_place.location for p in day.attractions):
-                                raise ValueError(f"请保留已有固定预约：{fixed_place.name} {fixed_place.fixed_start_time}")
+                            if fixed_place.has_time_constraint and not any(p.name == fixed_place.name and p.location == fixed_place.location for p in day.attractions):
+                                raise ValueError(f"请保留已有预约时间约束：{fixed_place.name}")
                         day.start_time, day.end_time, day.buffer_minutes = previous.start_time, previous.end_time, previous.buffer_minutes
                         for place in [*day.attractions, *day.meals, *([day.hotel] if day.hotel else [])]:
                             old_places = [*previous.attractions, *previous.meals, *([previous.hotel] if previous.hotel else [])]
@@ -664,6 +666,7 @@ reorder 用 order=[该类全部 item_id]；update_day 可填 start_time/end_time
                                 place.locked = old.locked
                                 if hasattr(place, "fixed_start_time"):
                                     place.fixed_start_time = old.fixed_start_time
+                                    place.entry_window = old.entry_window.model_copy(deep=True) if old.entry_window else None
                                 key = "ticket_price" if hasattr(place, "ticket_price") else "estimated_cost"
                                 setattr(place, key, getattr(old, key))
                                 place.cost_status, place.cost_source = old.cost_status, old.cost_source
@@ -673,6 +676,8 @@ reorder 用 order=[该类全部 item_id]；update_day 可填 start_time/end_time
                                     place.open_hours = old.open_hours
                                     place.hours_evidence = old.hours_evidence.model_copy(deep=True)
                 for day in working.days: day.identify_visits()
+                from ..services.ticket_bookings import preserve_bookings
+                preserve_bookings(working, current_plan)
                 check_reference_constraints(plan, request)
                 await self._check_schedule(working, request, progress)
                 if not current_plan and draft is None:

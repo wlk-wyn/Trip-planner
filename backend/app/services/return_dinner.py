@@ -33,7 +33,7 @@ async def repair_return_dinner(plan, request, validator, progress=None):
 
     for day_index, day in enumerate(result.days):
         if (not day.hotel or not day.hotel.location or not day.schedule or check_integrity(day, request)
-                or day.hotel.locked or any(p.locked or p.fixed_start_time for p in day.attractions)):
+                or day.hotel.locked or any(p.locked or p.has_time_constraint for p in day.attractions)):
             continue
         dinner = next((m for m in day.meals if m.type == 'dinner'), None)
         if (not dinner or not dinner.route_matched or dinner.item_id in protected

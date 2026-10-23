@@ -89,7 +89,7 @@ def overlap_issues(plan, request=None):
         b = {'coordinates': [parent.location.longitude, parent.location.latitude]}
         if not nearby_parent(a, b):
             continue
-        protected = child.locked or child.fixed_start_time or explicit_choice({'name': child.name, 'poi_id': child.poi_id}, request)
+        protected = child.locked or child.has_time_constraint or explicit_choice({'name': child.name, 'poi_id': child.poi_id}, request)
         issues.append(dict(code='nested_attraction', severity='info' if protected else 'warning', day_index=day.day_index,
                            message=f'{child.name}登记属于{parent.name}，两者分别安排在第{day.day_index+1}天和第{parent_day.day_index+1}天；请合并游览范围或确认需要单独再访，避免重复计算游览和门票。'))
     return issues

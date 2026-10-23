@@ -120,11 +120,12 @@
         </div>
       </div>
       <section v-if="!intakeHistory.length" v-reveal class="travel-scenes" aria-label="旅行场景">
-        <span class="scene-label">还没想好怎么玩？从一个旅行主题开始</span>
-        <div class="scene-grid"><button v-for="scene in travelScenes" :key="scene.title" type="button" :disabled="loading || intakeLoading || referenceBusy" @click="tripIdea = scene.idea">
+        <span class="scene-label">从一个旅行主题开始，填写后仍可自由修改</span>
+        <div class="scene-grid"><button v-for="scene in travelScenes" :key="scene.title" type="button" :disabled="loading || intakeLoading || referenceBusy || !!pendingPlan" @click="chooseTravelScene(scene)">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path :d="scene.icon" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
           <strong>{{ scene.title }}</strong><small>{{ scene.caption }}</small><span class="scene-arrow" aria-hidden="true">↗</span>
         </button></div>
+        <p class="scene-help" role="status">{{ sceneHint || '城市和日期留空时，会补入主题示例；点击主题不会开始生成。' }}</p>
       </section>
       <div v-if="intakeHistory.length" class="intake-thread" aria-live="polite">
         <div v-for="(turn, index) in intakeHistory" :key="index" :class="['intake-bubble', turn.role]">
@@ -241,10 +242,25 @@ watch(detailsOpen, open => { if (open) detailsMounted.value = true })
 const referenceOpen = ref(false)
 const referenceTab = ref<'paste' | 'link' | 'image'>('paste')
 const travelScenes = [
-  { title: '城市漫游', caption: '人文景点 · 本地美食', idea: '想安排一次城市漫游，喜欢博物馆和本地美食，每天不要太赶。', icon: 'M3 21h18M5 21V9h6v12m0-17h7v17M7 12h2m-2 4h2m5-8h2m-2 4h2m-2 4h2' },
-  { title: '亲子时光', caption: '少些奔波 · 多些陪伴', idea: '想安排一次亲子旅行，减少长时间交通，多安排适合孩子的活动和休息。', icon: 'M4 21v-5a4 4 0 0 1 8 0v5m0 0v-3a3 3 0 0 1 6 0v3M11 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm7 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z' },
-  { title: '自然放空', caption: '山野散步 · 轻松节奏', idea: '想去自然风光好的地方放空，安排轻松的散步路线，留出休息和拍照时间。', icon: 'm2 20 7-13 5 8 3-5 5 10H2Zm5-9 2 2 2-2M18 3h.01' }
+  { title: '城市漫游', city: '北京', days: 2, caption: '北京两日 · 人文与美食', idea: '两个人在市区慢游，喜欢历史文化和本地美食。每天最多两个主体景点，不重复安排园内附属点位，保留早午晚三餐、交通和休息。预算稍后再定。', icon: 'M3 21h18M5 21V9h6v12m0-17h7v17M7 12h2m-2 4h2m5-8h2m-2 4h2m-2 4h2' },
+  { title: '亲子时光', city: '上海', days: 2, caption: '上海两日 · 少些奔波', idea: '两个大人和一个六岁孩子的亲子旅行，每天最多两个景点，减少长时间交通，多安排适合孩子的活动和休息，保留三餐。住一间房，预算稍后再定。', icon: 'M4 21v-5a4 4 0 0 1 8 0v5m0 0v-3a3 3 0 0 1 6 0v3M11 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm7 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z' },
+  { title: '自然放空', city: '杭州', days: 1, caption: '杭州一日 · 公园与湖畔', idea: '两个人轻松逛公园和湖边，最多两个主体景点，不把停车场和游客中心当成景点，保留三餐、休息和拍照时间。预算稍后再定。', icon: 'm2 20 7-13 5 8 3-5 5 10H2Zm5-9 2 2 2-2M18 3h.01' }
 ]
+const sceneHint = ref('')
+function chooseTravelScene(scene: typeof travelScenes[number]) {
+  if (loading.value || intakeLoading.value || referenceBusy.value || pendingPlan.value) return
+  if (!formData.city.trim()) formData.city = scene.city
+  if (!formData.start_date && !formData.end_date) {
+    // A future Tuesday avoids a permanently stale demo date and common Monday closures.
+    const tomorrow = dayjs().startOf('day').add(1, 'day')
+    const start = tomorrow.add((2 - tomorrow.day() + 7) % 7, 'day')
+    formData.start_date = start
+    formData.end_date = start.add(scene.days - 1, 'day')
+  }
+  tripIdea.value = scene.idea
+  sceneHint.value = '主题已填入。请确认城市、日期和人数描述，再点击“开始规划”；已有设置和攻略会保留。'
+  document.getElementById('trip-idea')?.focus()
+}
 const disabledDate = (current: Dayjs) => current.isBefore(dayjs().startOf('day'))
 const tripIdea = ref('')
 const intakeHistory = ref<ChatTurn[]>([])
@@ -291,7 +307,7 @@ const cropHasSelection = ref(false)
 const isDragging = ref(false)
 
 const draftKey = 'tripFormDraft'
-const readDraft = (): Partial<TripFormData> & { intake_needs_budget?: boolean; intake_history?: ChatTurn[] } => {
+const readDraft = (): Partial<TripFormData> & { idea_text?: string; intake_needs_budget?: boolean; intake_history?: ChatTurn[] } => {
   try {
     const parsed = JSON.parse(sessionStorage.getItem(draftKey) || '{}')
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
@@ -300,6 +316,7 @@ const readDraft = (): Partial<TripFormData> & { intake_needs_budget?: boolean; i
   }
 }
 const draft = readDraft()
+tripIdea.value = typeof draft.idea_text === 'string' ? draft.idea_text.slice(0, 1500) : ''
 const intakeNeedsBudget = ref(draft.intake_needs_budget === true)
 intakeHistory.value = Array.isArray(draft.intake_history) ? draft.intake_history
   .filter(turn => turn && ['user', 'assistant'].includes(turn.role) && typeof turn.content === 'string')
@@ -446,10 +463,11 @@ const submitIdea = async (suggested?: string) => {
   }
 }
 
-watch([formData, intakeNeedsBudget, intakeHistory], () => {
+watch([formData, intakeNeedsBudget, intakeHistory, tripIdea], () => {
   try {
     sessionStorage.setItem(draftKey, JSON.stringify({
       ...formData,
+      idea_text: tripIdea.value,
       intake_needs_budget: intakeNeedsBudget.value,
       intake_history: intakeHistory.value,
       start_date: formData.start_date?.format('YYYY-MM-DD') || '',

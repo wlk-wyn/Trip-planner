@@ -34,7 +34,7 @@ def apply_patch(current: TripPlan, patch: PlanPatch, evidence: dict, scope=None)
             continue
         if op.action != "add" and target is None:
             raise ValueError("目标地点已不存在，请根据当前访问标识修改")
-        if target and (target.locked or getattr(target, "fixed_start_time", None)):
+        if target and (target.locked or getattr(target, "has_time_constraint", False)):
             raise ValueError("不能更改锁定地点或固定预约")
         if op.action == "move_visit":
             target_index = next((i for i,d in enumerate(plan.days) if d.date==op.target_date),None)

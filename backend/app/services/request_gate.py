@@ -46,6 +46,9 @@ def request_group(method, path):
             '/api/trips/{trip_id}/versions', '/api/trips/{trip_id}/chat',
             '/api/trips/{trip_id}/validate', '/api/trips/{trip_id}/enrich',
             '/api/trips/{trip_id}/days/{date}/fixes',
+            '/api/trips/{trip_id}/ticket-query',
+            '/api/trips/{trip_id}/entry-preview', '/api/trips/{trip_id}/entry-timing',
+            '/api/trips/{trip_id}/entry-options', '/api/trips/{trip_id}/entry-option',
         }
     ):
         return 'interactive'

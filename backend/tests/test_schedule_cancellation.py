@@ -33,7 +33,9 @@ class ScheduleCancellationTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 cancelled.set()
         plan = sample(3)
-        await asyncio.wait_for(routes.validate_schedule(plan, REQUEST, provider, route_timeout_seconds=.03), 2)
+        # Leave room for endpoint setup on Windows' debug event loop. This
+        # checks completed/pending cancellation, not a 30 ms latency target.
+        await asyncio.wait_for(routes.validate_schedule(plan, REQUEST, provider, route_timeout_seconds=.2), 2)
         segments = plan.days[0].schedule.segments
         self.assertTrue(any(s.status == 'verified' for s in segments))
         self.assertTrue(any(s.status == 'unverified' and s.duration_minutes is None for s in segments))

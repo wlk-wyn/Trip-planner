@@ -14,6 +14,8 @@ class VersionConflict(Exception):
 
 def change_summary(before, after):
     result = []
+    if before.get('ticket_bookings', []) != after.get('ticket_bookings', []):
+        result.append('更新用户录入的门票预订与退款记录')
     for index, day in enumerate(after.get("days", [])):
         old = next((d for d in before.get("days", []) if d.get("date") == day.get("date")), {})
         if old == day:
@@ -36,6 +38,8 @@ def change_summary(before, after):
                 details.append(f"{attraction['name']}游览时长：{previous.get('visit_duration')} → {attraction.get('visit_duration')} 分钟")
             if previous.get("fixed_start_time") != attraction.get("fixed_start_time"):
                 details.append(f"调整{attraction['name']}固定预约")
+            if previous.get('entry_window') != attraction.get('entry_window'):
+                details.append(f"调整{attraction['name']}入场时段")
             if any(previous.get(key) != attraction.get(key) for key in ("ticket_price", "cost_status")):
                 details.append(f"更新{attraction['name']}费用")
             if previous.get("description") != attraction.get("description"):
@@ -127,6 +131,8 @@ class TripRepository:
 
     def create(self, owner, request, plan, chat=None, run_id=None, extra=None, lease_token=None):
         """Insert a trip; with run_id the trip and the run's success are committed together."""
+        if plan.get('ticket_bookings'):
+            plan = {**plan, 'ticket_bookings': []}
         trip_id, now = str(uuid.uuid4()), datetime.now(timezone.utc).isoformat()
         encode = lambda v: json.dumps(v, ensure_ascii=False)
         with self.connect() as db:
@@ -165,8 +171,13 @@ class TripRepository:
                 raise VersionConflict("行程已在其他页面更新，请重新打开后再试")
             before = json.loads(row["plan"])
             from ..models.schemas import TripPlan
-            comparable_before=TripPlan.model_validate(before).model_dump()
-            comparable_after=TripPlan.model_validate(plan).model_dump()
+            old_plan, new_plan = TripPlan.model_validate(before), TripPlan.model_validate(plan)
+            if origin not in {'ticket_booking', 'restore'}:
+                from .ticket_bookings import preserve_bookings
+                preserve_bookings(new_plan, old_plan)
+                plan = {**plan, 'ticket_bookings': [b.model_dump() for b in new_plan.ticket_bookings]}
+            comparable_before=old_plan.model_dump()
+            comparable_after=new_plan.model_dump()
             changed = comparable_before != comparable_after
             version = base_version + int(changed)
             summary = change_summary(comparable_before, comparable_after)

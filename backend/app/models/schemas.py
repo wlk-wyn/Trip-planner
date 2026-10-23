@@ -164,6 +164,18 @@ class CostedPlace(BaseModel):
         return raw
 
 
+class EntryWindow(BaseModel):
+    """User supplied same-day entry window; end is the latest permitted entry."""
+    start: str = Field(pattern=TIME_PATTERN)
+    end: str = Field(pattern=TIME_PATTERN)
+
+    @model_validator(mode='after')
+    def ordered(self):
+        if self.end <= self.start:
+            raise ValueError('最晚入场时间必须晚于最早入场时间')
+        return self
+
+
 class Attraction(CostedPlace):
     """景点信息"""
     name: str = Field(..., description="景点名称")
@@ -178,6 +190,17 @@ class Attraction(CostedPlace):
     image_url: Optional[str] = Field(default=None, description="图片URL")
     ticket_price: Optional[float] = Field(default=None, ge=0, description="门票价格，未知为null")
     fixed_start_time: Optional[str] = Field(default=None, pattern=TIME_PATTERN)
+    entry_window: Optional[EntryWindow] = None
+
+    @property
+    def has_time_constraint(self):
+        return bool(self.fixed_start_time or self.entry_window)
+
+    @model_validator(mode='after')
+    def one_time_constraint(self):
+        if self.fixed_start_time and self.entry_window:
+            raise ValueError('固定时间与入场时段不能同时设置')
+        return self
 
 
 class Meal(CostedPlace):
@@ -358,6 +381,29 @@ class Budget(BaseModel):
     total: int = Field(default=0, description="总费用")
 
 
+class TicketBooking(BaseModel):
+    id: str
+    day_date: str
+    item_id: str
+    place_fingerprint: str
+    place_name: str
+    ticket_name: str = Field(min_length=1, max_length=120)
+    participants: int = Field(ge=1, le=100, strict=True)
+    paid_total: float = Field(ge=0, le=1000000, allow_inf_nan=False, strict=True)
+    refunded_total: float = Field(default=0, ge=0, le=1000000, allow_inf_nan=False, strict=True)
+    status: Literal['recorded', 'cancelled'] = 'recorded'
+    source_label: str = Field(default='', max_length=80)
+    fixed_start_time: Optional[str] = Field(default=None, pattern=TIME_PATTERN)
+    entry_window: Optional[EntryWindow] = None
+    recorded_at: str
+
+    @model_validator(mode='after')
+    def refund_limit(self):
+        if self.refunded_total > self.paid_total:
+            raise ValueError('已退款金额不能超过实付总额')
+        return self
+
+
 class TripPlan(BaseModel):
     """旅行计划"""
     city: str = Field(..., description="目的地城市")
@@ -368,6 +414,7 @@ class TripPlan(BaseModel):
     overall_suggestions: str = Field(..., description="总体建议")
     adjustment_notes: List[str] = Field(default_factory=list, max_length=100, description="服务端完成的规划调整说明，独立于模型原建议")
     budget: Optional[Budget] = Field(default=None, description="预算信息")
+    ticket_bookings: List[TicketBooking] = Field(default_factory=list, max_length=100)
 
 
 class TripPlanResponse(BaseModel):

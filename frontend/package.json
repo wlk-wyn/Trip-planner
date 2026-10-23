@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "node scripts/test.mjs",
     "predev": "node scripts/component-types.mjs",
     "prebuild": "node scripts/component-types.mjs",
     "dev": "vite",

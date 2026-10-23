@@ -74,7 +74,12 @@ def build_cost_report(plan, request=None, context=None):
 
     for day in plan.days:
         for place in day.attractions:
-            add_place(day.date, 'attractions', place, place.ticket_price, people, '人次')
+            from .ticket_bookings import active_booking
+            booking = active_booking(plan, day, place)
+            remaining_people = max(0, people - booking.participants) if booking else people
+            if remaining_people:
+                add_place(day.date, 'attractions', place, place.ticket_price, remaining_people, '人次')
+                if booking: lines[-1]['source'] += '；未被预订覆盖的人数参考费'
         for meal in day.meals:
             if (meal.restaurant or meal.name).strip():
                 add_place(day.date, 'meals', meal, meal.estimated_cost, people, '人次')
@@ -98,6 +103,14 @@ def build_cost_report(plan, request=None, context=None):
             add(overnight, 'hotels', '当晚住宿待选择', None, rooms, '间夜')
     if nights is None:
         add(plan.start_date, 'hotels', '住宿日期待核实', None, rooms, '间夜')
+
+    for booking in plan.ticket_bookings:
+        net = Decimal(str(booking.paid_total)) - Decimal(str(booking.refunded_total))
+        add(booking.day_date, 'attractions', f'{booking.place_name} · {booking.ticket_name}', float(net), 1, '笔', 'confirmed',
+            '用户录入实付总额，未独立核实' if booking.status == 'recorded' else '用户记录已取消；保留实付减已退金额，不代表平台已办理退款')
+        lines[-1].update(booking_id=booking.id, booking_status=booking.status,
+            booking_participants=booking.participants, paid_total=booking.paid_total, refunded_total=booking.refunded_total,
+            evidence={'source':'user','status':'user_provided','recorded_at':booking.recorded_at,'applies_on':booking.day_date})
 
     totals = {kind: float(sum((Decimal(str(line['amount'])) for line in lines if line['kind'] == kind and line['amount'] is not None), Decimal(0)))
               for kind in ('attractions', 'meals', 'hotels', 'transport')}
@@ -132,7 +145,8 @@ def build_cost_report(plan, request=None, context=None):
                 unknown_hotel_nights=len(unknown_hotels),other_unknown_count=other_unknown,
                 hotel_quote_taxes_pending=pending_quote_taxes,
                 exclusions=['往返目的地的大交通', '购物、个人消费及额外项目', '行程日期外的住宿和额外用餐'],
-                notes=['门票和公共交通按成人参考价计算；儿童、学生等优惠需另核实。',
+                notes=['未被用户预订记录覆盖的门票和公共交通按成人参考价计算；儿童、学生等优惠需另核实。',
+                       '门票实付按每笔总额计一次；未覆盖人数仍保留参考费。取消记录计实付减已退，尚未退回的钱仍计入小计；再次购票另计。',
                        '官网公示门票也只是当前政策参考，单独售票展览、讲解和园内交通等未列项目另计；不代表余票或预订成功。',
                        '住宿按出发日至返程日前一晚计算，最后一天列出的酒店不另算一晚。',
                        '用户提供的日期房型报价未独立核实；可住人数、早餐、取消政策和实际可订性仍需确认，未确认含税时不判断预算满足。',

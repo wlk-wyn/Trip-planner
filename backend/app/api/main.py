@@ -39,6 +39,8 @@ async def lifespan(_app: FastAPI):
         yield
     finally:
         await shutdown_runs()
+        from ..services.meituan_travel import close_queries
+        await close_queries()
         await close_route_queries()
         await close_client()
     print("\n" + "="*60)

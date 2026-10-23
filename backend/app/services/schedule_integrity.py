@@ -27,7 +27,7 @@ def check_integrity(day, request=None):
     problems.extend(geometry_errors(stops,schedule.segments,request.city if request else None))
     if [canonical(item.id) for item in schedule.items] != [s['id'] for s in stops]:
         problems.append('时间线与当天地点或顺序不一致，请重新校验')
-    elif any(item.kind != stop['kind'] or item.name != display_name(stop) or item.duration_minutes != stop['duration'] or item.fixed != bool(stop['fixed']) for item, stop in zip(schedule.items, stops)):
+    elif any(item.kind != stop['kind'] or item.name != display_name(stop) or item.duration_minutes != stop['duration'] or item.fixed != bool(stop['fixed'] or stop.get('entry_window')) for item, stop in zip(schedule.items, stops)):
         problems.append('时间线的地点或停留时长已过期，请重新校验')
     expected = [(s['id'], t['id']) for s, t in zip(stops, stops[1:])]
     if [(canonical(s.from_id), canonical(s.to_id)) for s in schedule.segments] != expected:
@@ -48,6 +48,9 @@ def check_integrity(day, request=None):
                     raise ValueError()
                 a, b = _minutes(item.start_time), _minutes(item.end_time)
                 if i < len(stops) and stops[i]['fixed'] and item.start_time != stops[i]['fixed']:
+                    raise ValueError()
+                entry = stops[i].get('entry_window') if i < len(stops) else None
+                if entry and not entry.start <= item.start_time <= entry.end:
                     raise ValueError()
                 if not start <= a <= b <= end or b-a != item.duration_minutes:
                     raise ValueError()

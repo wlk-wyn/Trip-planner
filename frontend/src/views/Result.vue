@@ -60,6 +60,7 @@
       <div v-if="historyOpen"><h2>修改记录 <button type="button" class="panel-close" aria-label="关闭修改记录" @click="historyOpen = false">×</button></h2><article v-for="item in versions" :key="item.version"><div><strong>版本 {{ item.version }} · {{ originLabel(item.origin) }}</strong><small>{{ new Date(item.created_at).toLocaleString() }}</small><p>{{ item.summary.join('；') }}</p></div><button type="button" :disabled="saving || chatLoading || editMode || diyMode || item.version === savedVersion" @click="restoreVersion(item.version)">{{ item.version === savedVersion ? '当前版本' : '恢复此版本' }}</button></article></div>
     </section>
     <TripPrepPanel v-if="tripPlan && prep" :prep="prep" :trip-id="savedId" @close="prep = null" />
+    <TicketQueryPanel v-if="ticketContext" :open="true" :trip-id="savedId" :version="savedVersion" :day-date="ticketContext.date" :item-id="ticketContext.id" :name="ticketContext.name" :fixed-time="ticketPlace?.fixed_start_time" :entry-window="ticketPlace?.entry_window" :bookings="ticketBookings" :disabled="busy || editMode || diyMode" @saved="entrySaved" @close="ticketContext = null" />
     <WeatherAdvicePanel v-if="tripPlan && weatherAdvice" :advice="weatherAdvice" :disabled="saving || chatLoading || runBusy" @apply="applyWeatherCandidate" @close="weatherAdvice = null" />
     <div v-if="tripPlan" class="result-layout">
       <button v-if="!agentOpen" type="button" class="agent-fab" @click="openAgent">问助手</button>
@@ -98,7 +99,7 @@
                 <div><strong>参观前先确认</strong><span>{{ dayPreparation(day).map(item => item.name).join('、') }} · 预约与入内条件尚需确认</span></div>
                 <button type="button" :disabled="prepLoading" @click="openPrep">{{ prepLoading ? '读取中…' : '查看要求与清单 ↗' }}</button>
               </aside>
-              <DayTimeline :availability-issue="dayVenueIssue(day)" :day="day" :editing="editMode" :selected-id="selectedStop" @select="focusStop" />
+              <DayTimeline :availability-issue="dayVenueIssue(day)" :day="day" :editing="editMode" :selected-id="selectedStop" :ticket-enabled="!!savedId && !busy && !diyMode" @select="focusStop" @tickets="id => openTickets(day, id)" />
               <div v-if="!day.schedule" class="day-flow" aria-label="当天游览和用餐顺序">
                 <div v-for="(stop, stopIndex) in dayFlow(day)" :key="`${stopIndex}-${stop.label}`" class="day-flow-stop" :class="`day-flow-${stop.type}`" :title="stop.label">
                   <span class="day-flow-kicker">{{ stop.kicker }}</span>
@@ -180,7 +181,8 @@
                         <p><strong>游览时长(分钟):</strong></p>
                         <a-input-number v-model:value="item.visit_duration" :min="10" :max="480" size="small" style="width: 100%; margin-bottom: 8px" />
 
-                        <label>固定预约时间（可留空）<input type="time" :value="item.fixed_start_time || ''" @input="item.fixed_start_time = ($event.target as HTMLInputElement).value || null" /></label>
+                        <p v-if="item.entry_window">入场时段 {{ item.entry_window.start }}—{{ item.entry_window.end }}（可退出编辑后在查票窗口调整）<button type="button" @click="item.entry_window = null">清除时段</button></p>
+                        <label>固定预约时间（可留空）<input type="time" :value="item.fixed_start_time || ''" @input="item.fixed_start_time = ($event.target as HTMLInputElement).value || null; item.entry_window = null" /></label>
                         <CostInput :place="item" field="ticket_price" label="门票" />
                         <p><strong>游览建议 / 备注:</strong></p>
                         <a-textarea v-model:value="item.description" :rows="2" size="small" style="margin-bottom: 8px" />
@@ -454,6 +456,22 @@ import { applicableHotelQuote } from '@/utils/hotelQuote'
 import type { DayDiagnosis } from '@/types'
 import { buildHandbookHtml, buildIcs, downloadFile } from '@/utils/handbook'
 import { apiUrl } from '@/services/api'
+import { lazyFeature } from '@/utils/lazyFeature'
+
+const TicketQueryPanel = lazyFeature(() => import('@/components/TicketQueryPanel.vue'), '门票查询')
+const ticketContext = ref<{ date: string; id: string; name: string } | null>(null)
+const ticketPlace = computed(() => tripPlan.value?.days.find(day => day.date === ticketContext.value?.date)?.attractions.find(place => place.item_id === ticketContext.value?.id))
+const ticketBookings = computed(() => (tripPlan.value?.ticket_bookings || []).filter(b => b.day_date === ticketContext.value?.date && b.item_id === ticketContext.value?.id))
+async function entrySaved(trip: SavedTrip) {
+  applySaved(trip); ticketContext.value = null; lastSummary.value = trip.change_summary || []
+  message.success('已保存记录与行程更新，可在历史版本中恢复')
+  await loadVersions(); await refreshMaps()
+}
+function openTickets(day: TripPlan['days'][number], id: string) {
+  const place = day.attractions.find(place => place.item_id === id)
+  if (!place || !savedId.value || busy.value) return
+  ticketContext.value = { date: day.date, id, name: place.name }
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -838,7 +856,7 @@ const normalizeDayIndices = (plan: TripPlan): TripPlan => ({
   days: plan.days.map((day, index) => ({ ...day, day_index: index }))
 })
 
-const originLabel = (origin: string) => ({ initial: '生成初稿', agent: '对话调整', manual: '手动编辑', diy: 'DIY 调整', route: '路线优化', optimize: '路线优化', chat: '对话调整', restore: '恢复历史', validation: '时间校验', enrich: '补充价格', fix: '冲突调整',hotel_quote:'入住日期报价' }[origin] || origin)
+const originLabel = (origin: string) => ({ initial: '生成初稿', agent: '对话调整', manual: '手动编辑', diy: 'DIY 调整', route: '路线优化', optimize: '路线优化', chat: '对话调整', restore: '恢复历史', validation: '时间校验', enrich: '补充价格', fix: '冲突调整',hotel_quote:'入住日期报价', appointment: '入场时间', ticket_booking: '门票预订记录' }[origin] || origin)
 function applySaved(trip: SavedTrip) {
   savedId.value = trip.id
   savedVersion.value = trip.version
@@ -1138,7 +1156,8 @@ const moveVisit = (dayIdx: number, itemIdx: number, targetDay: number) => {
   const source = tripPlan.value.days[dayIdx], target = tripPlan.value.days[targetDay]
   const place = source?.attractions[itemIdx]
   if (!place || !target) return
-  if (place.locked || place.fixed_start_time) { message.warning('锁定或有固定预约的景点不能移动'); return }
+  if ((tripPlan.value.ticket_bookings || []).some(b => b.status === 'recorded' && b.day_date === source.date && b.item_id === place.item_id)) { message.warning('该景点已录入预订，请先处理预订记录再跨日移动'); return }
+  if (place.locked || place.fixed_start_time || place.entry_window) { message.warning('锁定或有固定预约的景点不能移动'); return }
   if (source.attractions.length < 2) { message.warning('每天至少保留一个景点'); return }
   source.attractions.splice(itemIdx, 1)
   target.attractions.push(place)
