@@ -7,6 +7,7 @@
 复制并填写 [backend/.env.example](../backend/.env.example) 和 [frontend/.env.example](../frontend/.env.example) 对应的 `.env`。已有配置不要覆盖。
 
 - 后端：`AMAP_API_KEY`、`LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL_ID`；默认 `PLANNER_ENGINE=agent`。
+- 默认依赖支持 `agent` 和 `langgraph`。历史 HelloAgents 0.2.9 要求 `openai<2`，与当前 LangChain 所需的 OpenAI 2.x 冲突，已从默认安装中分离。历史代码仅在明确选择旧引擎时导入 SDK，需要单独准备兼容环境；不要在新版部署中强装或用 `--no-deps` 绕过冲突。
 - 前端：填写高德 JS API 相关配置；`VITE_API_BASE_URL` 支持同源接口，本地 Vite 代理到后端。
 - 可选美团：在 `backend/.env` 设置 `MEITUAN_TRAVEL_TOKEN`，重启后端。无需把 Token 放在前端，也无需全局安装 CLI。实现参照官方文档指定的 `@meituan-travel/travel-cli@1.0.16` 的查询协议，通过后端直连其固定 HTTPS 地址；供应商升级时需复核协议。
 - QPS、模型超时、缓存、任务容量和 HTTP 容量由后端示例配置说明。不要超过账户实际可用额度。
@@ -79,7 +80,22 @@ npm run dev
 
 本地仓库当前分支为 `master`，远程为 `github.com/wlk-wyn/Trip-planner`。这只说明代码托管位置，不证明线上服务已经连接或部署成功。已有服务优先更新原服务，不必重新创建；先在控制台确认连接的仓库、部署分支及自动部署开关。
 
-### Render 后端
+### 已有 Render Docker 后端
+
+旧分支中的部署配置使用 Docker。继续更新原 Docker 服务时，采用以下配置；镜像由 Render 云端构建，本机无需安装 Docker：
+
+| 设置 | 本项目填写值 |
+| --- | --- |
+| Branch | `master` |
+| Root Directory | 留空（仓库根目录） |
+| Dockerfile Path | `deploy/Dockerfile.backend` |
+| Docker Build Context Directory | `.` |
+| Docker Command | 留空，使用 Dockerfile 的 CMD |
+| Health Check Path | `/ready` |
+
+在 Environment 设置 `PORT=8000`，与当前 CMD 一致，凭据和 `CORS_ORIGINS` 同下方说明。需要持久存储时，Docker 服务的挂载路径是 `/app/var`；先备份旧数据。不要将下方 Python 原生服务的根目录、启动命令或磁盘路径混用于 Docker 服务。Render 的 Docker/根目录规则见[官方 Docker 文档](https://render.com/docs/docker)和[单仓库多项目配置](https://render.com/docs/monorepo-support)。
+
+### Render Python 原生后端（另一种选择）
 
 按 [Render FastAPI 部署说明](https://render.com/docs/deploy-fastapi/)使用 Python 原生 Web Service，项目参数如下：
 
@@ -118,7 +134,7 @@ npm run dev
 3. 等待两边成功，在控制台确认部署的是本次提交；访问后端 `/ready`，再打开前端新建一条测试行程，检查生成、地图、门票查询、保存与刷新恢复。
 4. 如需保证旧页面兼容或避免同时发布，先在控制台关闭自动部署，推送后手动先部署后端，再部署前端。保留原服务的访问控制；Docker 方案中的 Nginx 认证不会自动应用到这两个独立平台。
 
-本轮只完成本地代码与部署说明，尚未推送、修改平台设置或做公网验收。
+当前 `master` 代码已推送，平台配置由控制台设置；公网运行效果仍需实际部署验收。
 
 ## 可部署演示配置
 

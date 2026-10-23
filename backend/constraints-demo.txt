@@ -1,6 +1,6 @@
-# Direct runtime versions checked locally on 2026-10-23.
+# Default runtime direct versions checked in a clean environment on 2026-10-23.
 # This is not a complete transitive lock or Linux container verification.
-hello-agents==0.2.9
+openai==2.38.0
 langgraph==1.2.2
 langchain-core==1.4.0
 langchain-openai==1.2.2

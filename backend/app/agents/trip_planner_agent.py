@@ -2,8 +2,6 @@
 
 import json
 from typing import Dict, Any, List
-from hello_agents import SimpleAgent
-from hello_agents.tools import MCPTool
 from ..services.llm_service import get_llm
 from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, WeatherInfo, Location, Hotel
 from ..config import get_settings
@@ -200,6 +198,14 @@ class MultiAgentTripPlanner:
         print("🔄 开始初始化多智能体旅行规划系统...")
 
         try:
+            # Legacy-only dependency: never load it when serving agent/langgraph.
+            try:
+                from hello_agents import SimpleAgent
+                from hello_agents.tools import MCPTool
+            except ImportError as exc:
+                raise RuntimeError(
+                    "旧版 HelloAgents 引擎需要独立兼容环境；当前部署请设置 PLANNER_ENGINE=agent 或 langgraph"
+                ) from exc
             settings = get_settings()
             self.llm = get_llm()
 

@@ -1,7 +1,6 @@
-# HelloAgents框架
-hello-agents[protocols]>=0.2.4,<=0.2.9
-
-# 默认 Agent 引擎（本地已使用这些版本验收）
+# 默认 Agent 引擎；旧 HelloAgents 0.2.9 的 openai<2 与此环境不兼容。
+# 历史 HelloAgents 引擎仅可在单独的兼容环境运行，不加入默认部署依赖。
+openai>=2.26,<3.0
 langgraph>=1.2,<2.0
 langchain-core>=1.4,<2.0
 langchain-openai>=1.2,<2.0

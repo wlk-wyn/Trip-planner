@@ -121,3 +121,11 @@ cd backend
 日志：本地忽略的 `backend/var/booking-options-backend.log`、`frontend/var/booking-options-frontend.log`、`frontend/var/booking-options-build.log`。本轮没有重复模型生成、压力测试或生产性能测量。
 
 收尾清除了预约调整候选中的旧聚合预算，6 项相关回归通过（`backend/var/booking-options-final.log`）；前端再次完成 103 项及正式构建，费用记录始终绑定原行程日期，另查其他日期不改变收据日期，旧行程也可记录实际退款。最终静态依赖 gzip：Home 258649/270000 字节、Result 305743/320000 字节，均通过既定门槛。
+
+## 2026-10-23 部署依赖冲突修复
+
+Render 首次镜像构建暴露 HelloAgents 0.2.9 要求 `openai<2`，而 langchain-openai 1.2.2 要求 `openai>=2.26,<3`。此前本地环境存在此元数据冲突，功能测试通过不能证明全新安装可解。默认 requirements/constraints 已移除旧 SDK、明确 OpenAI 2.x；历史模块改为按需导入，Docker 安装后增加 `pip check`。
+
+在忽略的 `backend/var/deploy-verify-venv` 全新安装后，`pip check` 无冲突；同一环境后端 **632 项通过**（52.433 秒）。新增测试复制应用到临时目录、使用假配置并阻断 HelloAgents 导入，验证默认模型构造、应用 lifespan、`/health` 和 `/ready`，同时检查显式选择旧引擎会说明所需兼容环境，不调用模型或地图、不写用户行程。
+
+`uv pip compile --python-platform linux --python-version 3.12` 目标依赖解析通过。Windows pip 跨平台 dry-run 仍使用宿主系统的 win32 条件，要求下载 pywin32，不能作为 Linux 安装验收；该尝试不计为通过。当前没有实际 Linux/Docker 运行环境，尚未完成镜像构建和公网验证；未重复前端测试。日志及解析结果保存在忽略的 `backend/var/deploy-*.log` 和 `backend/var/deploy-linux-resolved.txt`。

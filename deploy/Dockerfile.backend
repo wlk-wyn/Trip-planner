@@ -4,7 +4,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tesseract-ocr tesseract-ocr-chi-sim \
     && rm -rf /var/lib/apt/lists/*
 COPY backend/requirements.txt backend/constraints-demo.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -c constraints-demo.txt
+RUN pip install --no-cache-dir -r requirements.txt -c constraints-demo.txt && pip check
 RUN useradd --uid 10001 --create-home traveler && mkdir -p /app/var && chown traveler:traveler /app/var
 COPY backend/app ./app
 COPY scripts/backup-trips.py /app/backup-trips.py

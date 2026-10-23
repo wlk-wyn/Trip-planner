@@ -1,6 +1,9 @@
 """LLM服务模块"""
 
-from hello_agents import HelloAgentsLLM
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from hello_agents import HelloAgentsLLM
 from ..config import get_settings
 
 # 全局LLM实例
@@ -17,6 +20,7 @@ def get_llm() -> HelloAgentsLLM:
     global _llm_instance
     
     if _llm_instance is None:
+        from hello_agents import HelloAgentsLLM
         settings = get_settings()
         
         # HelloAgentsLLM会自动从环境变量读取配置
